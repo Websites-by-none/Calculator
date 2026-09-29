@@ -1,0 +1,2149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHYSX — Scientific & Physics Calculator</title>
+<meta name="description" content="Advanced offline scientific calculator, physics solver, algebra, calculus, matrix and statistics engine">
+<style>
+:root {
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #12122a;
+  --bg-tertiary: #1a1a3e;
+  --bg-card: #16163a;
+  --bg-input: #1e1e4a;
+  --bg-button: #252560;
+  --bg-button-hover: #303080;
+  --bg-operator: #1a3a6a;
+  --bg-operator-hover: #2050a0;
+  --bg-equals: #0066cc;
+  --bg-equals-hover: #0080ff;
+  --bg-danger: #cc3333;
+  --bg-danger-hover: #ee4444;
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0c0;
+  --text-muted: #606080;
+  --text-accent: #00d4ff;
+  --text-result: #00ff88;
+  --text-error: #ff6666;
+  --text-warning: #ffaa00;
+  --border-color: #2a2a5a;
+  --border-focus: #0066cc;
+  --shadow: 0 4px 20px rgba(0,0,0,0.4);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --transition: 0.2s ease;
+  --font-mono: 'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
+  --font-sans: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+[data-theme="light"] {
+  --bg-primary: #f0f2f5; --bg-secondary: #ffffff; --bg-tertiary: #e8eaf0;
+  --bg-card: #ffffff; --bg-input: #f5f5fa; --bg-button: #e0e2ea;
+  --bg-button-hover: #d0d2da; --bg-operator: #c8d8f0; --bg-operator-hover: #a8c0e8;
+  --bg-equals: #0066cc; --bg-equals-hover: #0080ff; --bg-danger: #dd4444;
+  --bg-danger-hover: #ee5555; --text-primary: #1a1a2e; --text-secondary: #4a4a6a;
+  --text-muted: #8a8aa0; --text-accent: #0055bb; --text-result: #008844;
+  --text-error: #cc2222; --text-warning: #cc8800; --border-color: #d0d2e0;
+  --border-focus: #0066cc; --shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px}
+body{font-family:var(--font-sans);background:var(--bg-primary);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg-secondary)}
+::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:3px}
+
+.nav{background:var(--bg-secondary);border-bottom:1px solid var(--border-color);padding:0 12px;display:flex;align-items:center;height:52px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.nav-logo{font-family:var(--font-mono);font-size:1.2rem;font-weight:800;color:var(--text-accent);letter-spacing:3px;margin-right:16px;user-select:none;flex-shrink:0}
+.nav-tabs{display:flex;gap:2px;flex:1;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{background:transparent;border:none;color:var(--text-secondary);padding:6px 12px;font-size:.8rem;font-weight:600;cursor:pointer;border-radius:var(--radius);transition:var(--transition);white-space:nowrap;font-family:var(--font-sans)}
+.nav-tab:hover{background:var(--bg-tertiary);color:var(--text-primary)}
+.nav-tab.active{background:var(--bg-tertiary);color:var(--text-accent)}
+.nav-settings{background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);width:34px;height:34px;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:var(--transition);margin-left:6px;flex-shrink:0}
+.nav-settings:hover{background:var(--bg-tertiary);color:var(--text-primary)}
+
+.main{max-width:1200px;margin:0 auto;padding:16px 12px}
+.page{display:none}.page.active{display:block}
+.card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-title{font-size:.85rem;color:var(--text-accent);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px}
+
+/* Sub-nav for advanced math modes */
+.sub-nav{display:flex;gap:3px;margin-bottom:12px;flex-wrap:wrap}
+.sub-tab{background:var(--bg-button);border:1px solid var(--border-color);color:var(--text-secondary);padding:7px 14px;font-size:.8rem;font-weight:600;cursor:pointer;border-radius:var(--radius);transition:var(--transition);font-family:var(--font-sans)}
+.sub-tab:hover{background:var(--bg-button-hover);color:var(--text-primary)}
+.sub-tab.active{background:var(--bg-equals);color:#fff;border-color:var(--bg-equals)}
+.sub-page{display:none}.sub-page.active{display:block}
+
+/* Calculator */
+.calc-layout{display:grid;grid-template-columns:1fr 320px;gap:12px}
+@media(max-width:800px){.calc-layout{grid-template-columns:1fr}}
+.calc-display{background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px;min-height:90px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.calc-expression{font-family:var(--font-mono);font-size:1rem;color:var(--text-secondary);text-align:right;word-break:break-all;min-height:1.3em;margin-bottom:6px}
+.calc-result{font-family:var(--font-mono);font-size:1.8rem;font-weight:700;color:var(--text-result);text-align:right;word-break:break-all;min-height:1.2em}
+.calc-result.error{color:var(--text-error);font-size:.9rem}
+.calc-mode-bar{display:flex;gap:3px;margin-bottom:6px;flex-wrap:wrap;align-items:center}
+.mode-btn{background:var(--bg-button);border:1px solid var(--border-color);color:var(--text-secondary);padding:3px 8px;font-size:.72rem;font-weight:600;cursor:pointer;border-radius:4px;transition:var(--transition);font-family:var(--font-mono)}
+.mode-btn.active{background:var(--bg-equals);color:#fff;border-color:var(--bg-equals)}
+.mode-btn:hover{background:var(--bg-button-hover)}
+.calc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.calc-btn{background:var(--bg-button);border:1px solid var(--border-color);color:var(--text-primary);padding:12px 3px;font-size:.85rem;font-weight:600;cursor:pointer;border-radius:var(--radius);transition:var(--transition);font-family:var(--font-mono);text-align:center;user-select:none;min-height:44px;display:flex;align-items:center;justify-content:center}
+.calc-btn:hover{background:var(--bg-button-hover)}.calc-btn:active{transform:scale(.96)}
+.calc-btn.op{background:var(--bg-operator);color:var(--text-accent)}.calc-btn.op:hover{background:var(--bg-operator-hover)}
+.calc-btn.eq{background:var(--bg-equals);color:#fff}.calc-btn.eq:hover{background:var(--bg-equals-hover)}
+.calc-btn.danger{background:var(--bg-danger);color:#fff}.calc-btn.danger:hover{background:var(--bg-danger-hover)}
+.calc-btn.func{font-size:.73rem;color:var(--text-accent)}
+
+/* Forms */
+.form-group{margin-bottom:12px}
+.form-label{display:block;font-size:.78rem;color:var(--text-secondary);margin-bottom:3px;font-weight:600}
+.form-select,.form-input{width:100%;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:9px 10px;font-size:.9rem;border-radius:var(--radius);font-family:var(--font-sans);transition:var(--transition);outline:none}
+.form-select:focus,.form-input:focus{border-color:var(--border-focus)}
+.form-input::placeholder{color:var(--text-muted)}
+.form-textarea{width:100%;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:9px 10px;font-size:.9rem;border-radius:var(--radius);font-family:var(--font-mono);transition:var(--transition);outline:none;resize:vertical;min-height:60px}
+.form-textarea:focus{border-color:var(--border-focus)}
+
+.input-row{display:flex;gap:6px;align-items:center}
+.input-row .form-input{flex:1}
+.unit-select{width:90px;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-accent);padding:9px 6px;font-size:.82rem;border-radius:var(--radius);font-family:var(--font-mono);cursor:pointer;outline:none}
+
+.btn-calc{background:var(--bg-equals);border:none;color:#fff;padding:12px 28px;font-size:.95rem;font-weight:700;border-radius:var(--radius);cursor:pointer;transition:var(--transition);width:100%;margin-top:6px;font-family:var(--font-sans)}
+.btn-calc:hover{background:var(--bg-equals-hover)}
+.btn-calc:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:var(--bg-button);border:1px solid var(--border-color);color:var(--text-primary);padding:10px 20px;font-size:.9rem;font-weight:600;border-radius:var(--radius);cursor:pointer;transition:var(--transition);font-family:var(--font-sans);margin-top:6px;width:100%}
+.btn-secondary:hover{background:var(--bg-button-hover)}
+
+/* Result */
+.result-box{background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:16px;margin-top:10px}
+.result-section{margin-bottom:12px}.result-section:last-child{margin-bottom:0}
+.result-label{font-size:.72rem;color:var(--text-accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.result-value{font-family:var(--font-mono);font-size:.95rem;color:var(--text-primary);line-height:1.5}
+.result-answer{font-family:var(--font-mono);font-size:1.3rem;font-weight:700;color:var(--text-result)}
+.result-assumption{font-size:.78rem;color:var(--text-warning);font-style:italic}
+.result-step{font-family:var(--font-mono);font-size:.88rem;color:var(--text-primary);padding:3px 0;border-bottom:1px solid var(--border-color)}
+.result-step:last-child{border-bottom:none}
+
+/* Physics layout */
+.phys-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:800px){.phys-layout{grid-template-columns:1fr}}
+
+/* Eq library */
+.eq-search{width:100%;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:10px 14px;font-size:.95rem;border-radius:var(--radius);font-family:var(--font-sans);margin-bottom:12px;outline:none}
+.eq-search:focus{border-color:var(--border-focus)}
+.eq-category{font-size:.95rem;color:var(--text-accent);font-weight:700;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border-color)}
+.eq-item{background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius);padding:12px;margin-bottom:6px}
+.eq-formula{font-family:var(--font-mono);font-size:1rem;color:var(--text-result);margin-bottom:4px}
+.eq-vars{font-size:.78rem;color:var(--text-muted);font-family:var(--font-mono)}
+.eq-assumptions{font-size:.76rem;color:var(--text-warning);font-style:italic;margin-top:3px}
+
+/* Constants */
+.const-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.const-item{background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius);padding:10px}
+.const-symbol{font-family:var(--font-mono);font-size:1.1rem;color:var(--text-accent);font-weight:700}
+.const-name{font-size:.82rem;color:var(--text-secondary);margin:3px 0}
+.const-val{font-family:var(--font-mono);font-size:.85rem;color:var(--text-result)}
+.const-unit{font-size:.78rem;color:var(--text-muted)}
+
+/* History */
+.hist-item{background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius);padding:10px;margin-bottom:6px;cursor:pointer;transition:var(--transition);display:flex;justify-content:space-between;align-items:flex-start}
+.hist-item:hover{border-color:var(--border-focus)}
+.hist-expr{font-family:var(--font-mono);font-size:.85rem;color:var(--text-secondary)}
+.hist-result{font-family:var(--font-mono);font-size:.95rem;color:var(--text-result);font-weight:600}
+.hist-type{font-size:.68rem;color:var(--text-accent);text-transform:uppercase;letter-spacing:1px}
+.hist-del{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:3px 6px;border-radius:4px;transition:var(--transition)}
+.hist-del:hover{color:var(--text-error);background:rgba(255,0,0,.1)}
+.hist-actions{display:flex;gap:6px;margin-bottom:12px}
+.hist-actions button{background:var(--bg-button);border:1px solid var(--border-color);color:var(--text-secondary);padding:7px 14px;font-size:.82rem;border-radius:var(--radius);cursor:pointer;transition:var(--transition);font-family:var(--font-sans)}
+.hist-actions button:hover{background:var(--bg-button-hover);color:var(--text-primary)}
+
+/* Settings */
+.setting-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-color)}
+.setting-item:last-child{border-bottom:none}
+.setting-name{font-size:.9rem;font-weight:600}
+.setting-desc{font-size:.78rem;color:var(--text-muted);margin-top:1px}
+.setting-control select,.setting-control button{background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:7px 10px;font-size:.82rem;border-radius:var(--radius);cursor:pointer;font-family:var(--font-sans);outline:none}
+.setting-control button:hover{background:var(--bg-button-hover)}
+.setting-control button.danger{background:var(--bg-danger);color:#fff;border-color:var(--bg-danger)}
+
+.toggle{position:relative;width:44px;height:24px;cursor:pointer}
+.toggle input{display:none}
+.toggle-slider{position:absolute;inset:0;background:var(--bg-button);border-radius:12px;border:1px solid var(--border-color);transition:var(--transition)}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;background:var(--text-secondary);border-radius:50%;top:2px;left:2px;transition:var(--transition)}
+.toggle input:checked+.toggle-slider{background:var(--bg-equals);border-color:var(--bg-equals)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px);background:#fff}
+
+.empty-state{text-align:center;padding:30px 16px;color:var(--text-muted)}
+.empty-state-icon{font-size:2rem;margin-bottom:8px}
+
+/* Matrix grid */
+.matrix-grid{display:inline-grid;gap:4px;margin:8px 0}
+.matrix-grid input{width:60px;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:6px;font-size:.85rem;border-radius:4px;font-family:var(--font-mono);text-align:center;outline:none}
+.matrix-grid input:focus{border-color:var(--border-focus)}
+.matrix-label{font-family:var(--font-mono);font-size:.85rem;color:var(--text-accent);font-weight:600;margin:8px 0 4px}
+.matrix-result{font-family:var(--font-mono);font-size:.9rem;color:var(--text-result);margin:6px 0;white-space:pre-wrap}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;justify-content:center;align-items:center;padding:16px}
+.modal-overlay.active{display:flex}
+.modal{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:20px;max-width:460px;width:100%;box-shadow:var(--shadow)}
+.modal-title{font-size:1rem;font-weight:700;margin-bottom:12px}
+.modal-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:16px}
+.modal-actions button{padding:7px 18px;border-radius:var(--radius);border:1px solid var(--border-color);cursor:pointer;font-size:.85rem;font-family:var(--font-sans);transition:var(--transition)}
+.modal-btn-cancel{background:var(--bg-button);color:var(--text-primary)}
+.modal-btn-confirm{background:var(--bg-danger);color:#fff;border-color:var(--bg-danger)}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+</style>
+</head>
+<body>
+
+<nav class="nav" role="navigation" aria-label="Main navigation">
+  <div class="nav-logo">PHYSX</div>
+  <div class="nav-tabs" role="tablist">
+    <button class="nav-tab active" data-page="calculator" role="tab" aria-selected="true">Calculator</button>
+    <button class="nav-tab" data-page="physics" role="tab">Physics</button>
+    <button class="nav-tab" data-page="equations" role="tab">Equations</button>
+    <button class="nav-tab" data-page="constants" role="tab">Constants</button>
+    <button class="nav-tab" data-page="history" role="tab">History</button>
+  </div>
+  <button class="nav-settings" data-page="settings" aria-label="Settings" title="Settings">⚙</button>
+</nav>
+
+<main class="main" role="main">
+
+<!-- ============ CALCULATOR PAGE ============ -->
+<div class="page active" id="page-calculator">
+
+  <!-- Sub-navigation: Scientific | Algebra | Calculus | Matrix | Statistics -->
+  <div class="sub-nav" id="calc-sub-nav">
+    <button class="sub-tab active" data-sub="scientific">Scientific</button>
+    <button class="sub-tab" data-sub="algebra">Algebra</button>
+    <button class="sub-tab" data-sub="calculus">Calculus</button>
+    <button class="sub-tab" data-sub="matrix">Matrix</button>
+    <button class="sub-tab" data-sub="statistics">Statistics</button>
+  </div>
+
+  <!-- ======= SCIENTIFIC SUB-PAGE ======= -->
+  <div class="sub-page active" id="sub-scientific">
+    <div class="calc-layout">
+      <div>
+        <div class="card">
+          <div class="calc-mode-bar">
+            <button class="mode-btn active" data-angle="DEG">DEG</button>
+            <button class="mode-btn" data-angle="RAD">RAD</button>
+            <button class="mode-btn" data-angle="GRAD">GRAD</button>
+            <span style="flex:1"></span>
+            <button class="mode-btn" id="btn-inv">INV</button>
+          </div>
+          <div class="calc-display" aria-live="polite">
+            <div class="calc-expression" id="calc-expr"></div>
+            <div class="calc-result" id="calc-result">0</div>
+          </div>
+          <div style="display:flex;gap:3px;margin-bottom:6px;flex-wrap:wrap">
+            <button class="calc-btn func" style="font-size:.7rem" data-mem="MC">MC</button>
+            <button class="calc-btn func" style="font-size:.7rem" data-mem="MR">MR</button>
+            <button class="calc-btn func" style="font-size:.7rem" data-mem="M+">M+</button>
+            <button class="calc-btn func" style="font-size:.7rem" data-mem="M-">M−</button>
+            <button class="calc-btn func" style="font-size:.7rem" data-mem="MS">MS</button>
+          </div>
+          <div class="calc-grid" id="calc-buttons">
+            <button class="calc-btn func" data-fn="sin">sin</button>
+            <button class="calc-btn func" data-fn="cos">cos</button>
+            <button class="calc-btn func" data-fn="tan">tan</button>
+            <button class="calc-btn func" data-fn="log">log</button>
+            <button class="calc-btn func" data-fn="ln">ln</button>
+            <button class="calc-btn func" data-fn="sinh">sinh</button>
+            <button class="calc-btn func" data-fn="cosh">cosh</button>
+            <button class="calc-btn func" data-fn="tanh">tanh</button>
+            <button class="calc-btn func" data-fn="sqrt">√</button>
+            <button class="calc-btn func" data-fn="cbrt">∛</button>
+            <button class="calc-btn func" data-fn="abs">|x|</button>
+            <button class="calc-btn func" data-fn="exp">eˣ</button>
+            <button class="calc-btn func" data-fn="fact">x!</button>
+            <button class="calc-btn func" data-fn="recip">1/x</button>
+            <button class="calc-btn func" data-fn="pow">xʸ</button>
+            <button class="calc-btn func" data-const="pi">π</button>
+            <button class="calc-btn func" data-const="e">e</button>
+            <button class="calc-btn op" data-input="(">(</button>
+            <button class="calc-btn op" data-input=")">)</button>
+            <button class="calc-btn danger" data-action="clear">AC</button>
+            <button class="calc-btn" data-input="7">7</button>
+            <button class="calc-btn" data-input="8">8</button>
+            <button class="calc-btn" data-input="9">9</button>
+            <button class="calc-btn op" data-input="÷">÷</button>
+            <button class="calc-btn" data-action="backspace">⌫</button>
+            <button class="calc-btn" data-input="4">4</button>
+            <button class="calc-btn" data-input="5">5</button>
+            <button class="calc-btn" data-input="6">6</button>
+            <button class="calc-btn op" data-input="×">×</button>
+            <button class="calc-btn op" data-input="%">%</button>
+            <button class="calc-btn" data-input="1">1</button>
+            <button class="calc-btn" data-input="2">2</button>
+            <button class="calc-btn" data-input="3">3</button>
+            <button class="calc-btn op" data-input="-">−</button>
+            <button class="calc-btn func" data-action="ans">Ans</button>
+            <button class="calc-btn" data-input="0">0</button>
+            <button class="calc-btn" data-input=".">.</button>
+            <button class="calc-btn func" data-input="E">EE</button>
+            <button class="calc-btn op" data-input="+">+</button>
+            <button class="calc-btn eq" data-action="calculate">=</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="calc-history-panel">
+        <div class="card-title">History</div>
+        <div id="calc-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= ALGEBRA SUB-PAGE ======= -->
+  <div class="sub-page" id="sub-algebra">
+    <div class="phys-layout">
+      <div class="card">
+        <div class="card-title">Algebra Solver</div>
+        <div class="form-group">
+          <label class="form-label">Operation</label>
+          <select class="form-select" id="alg-mode">
+            <option value="linear">Linear Equation (ax + b = c)</option>
+            <option value="quadratic">Quadratic Equation (ax² + bx + c = 0)</option>
+            <option value="polynomial">Polynomial Evaluation</option>
+            <option value="system2">System of 2 Equations</option>
+            <option value="system3">System of 3 Equations</option>
+            <option value="simplify">Simplify Expression</option>
+            <option value="expand">Expand Expression</option>
+            <option value="factor">Factor Quadratic</option>
+          </select>
+        </div>
+        <div id="alg-inputs"></div>
+        <button class="btn-calc" id="alg-calculate">SOLVE</button>
+        <button class="btn-secondary" id="alg-show-steps" style="display:none">Show Steps</button>
+      </div>
+      <div class="card" id="alg-result-card" style="display:none">
+        <div class="card-title">Solution</div>
+        <div id="alg-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= CALCULUS SUB-PAGE ======= -->
+  <div class="sub-page" id="sub-calculus">
+    <div class="phys-layout">
+      <div class="card">
+        <div class="card-title">Calculus Engine</div>
+        <div class="form-group">
+          <label class="form-label">Operation</label>
+          <select class="form-select" id="calc-op">
+            <option value="derivative">Derivative (d/dx)</option>
+            <option value="derivative2">Second Derivative (d²/dx²)</option>
+            <option value="integral">Indefinite Integral (∫ dx)</option>
+            <option value="definite">Definite Integral (∫ₐᵇ dx)</option>
+            <option value="limit">Limit (lim x→a)</option>
+            <option value="taylor">Taylor Series</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expression f(x)</label>
+          <input type="text" class="form-input" id="calc-expr-input" placeholder="e.g. x^3 + 5*x^2 - 2*x + 7">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Variable</label>
+          <input type="text" class="form-input" id="calc-var" value="x" style="width:60px">
+        </div>
+        <div id="calc-extra-inputs"></div>
+        <button class="btn-calc" id="calc-calculate">CALCULATE</button>
+        <button class="btn-secondary" id="calc-show-steps" style="display:none">Show Steps</button>
+      </div>
+      <div class="card" id="calc-result-card" style="display:none">
+        <div class="card-title">Result</div>
+        <div id="calc-calc-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= MATRIX SUB-PAGE ======= -->
+  <div class="sub-page" id="sub-matrix">
+    <div class="phys-layout">
+      <div class="card">
+        <div class="card-title">Matrix Calculator</div>
+        <div class="form-group">
+          <label class="form-label">Operation</label>
+          <select class="form-select" id="mat-op">
+            <option value="det">Determinant</option>
+            <option value="inv">Inverse</option>
+            <option value="trans">Transpose</option>
+            <option value="add">A + B</option>
+            <option value="sub">A − B</option>
+            <option value="mul">A × B</option>
+            <option value="scalar">Scalar × A</option>
+            <option value="trace">Trace</option>
+            <option value="rank">Rank</option>
+            <option value="rref">Row Echelon Form</option>
+            <option value="eigen">Eigenvalues (2×2)</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;gap:8px;align-items:center">
+          <label class="form-label" style="margin-bottom:0">Rows:</label>
+          <input type="number" class="form-input" id="mat-rows" value="2" min="1" max="6" style="width:60px">
+          <label class="form-label" style="margin-bottom:0">Cols:</label>
+          <input type="number" class="form-input" id="mat-cols" value="2" min="1" max="6" style="width:60px">
+          <button class="btn-secondary" id="mat-resize" style="width:auto;margin:0;padding:6px 14px">Set Size</button>
+        </div>
+        <div id="mat-inputs"></div>
+        <div class="form-group" id="mat-scalar-group" style="display:none">
+          <label class="form-label">Scalar value</label>
+          <input type="number" class="form-input" id="mat-scalar" value="2" step="any" style="width:100px">
+        </div>
+        <button class="btn-calc" id="mat-calculate">CALCULATE</button>
+      </div>
+      <div class="card" id="mat-result-card" style="display:none">
+        <div class="card-title">Result</div>
+        <div id="mat-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= STATISTICS SUB-PAGE ======= -->
+  <div class="sub-page" id="sub-statistics">
+    <div class="phys-layout">
+      <div class="card">
+        <div class="card-title">Statistics Calculator</div>
+        <div class="form-group">
+          <label class="form-label">Mode</label>
+          <select class="form-select" id="stat-mode">
+            <option value="descriptive">Descriptive Statistics</option>
+            <option value="regression">Linear Regression</option>
+            <option value="probability">Probability (nPr, nCr, Binomial)</option>
+          </select>
+        </div>
+        <div id="stat-inputs"></div>
+        <div class="form-group" id="stat-pop-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="stat-pop">
+            <option value="population">Population</option>
+            <option value="sample">Sample</option>
+          </select>
+        </div>
+        <button class="btn-calc" id="stat-calculate">CALCULATE</button>
+      </div>
+      <div class="card" id="stat-result-card" style="display:none">
+        <div class="card-title">Results</div>
+        <div id="stat-result"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ PHYSICS PAGE ============ -->
+<div class="page" id="page-physics">
+  <div class="phys-layout">
+    <div class="card">
+      <div class="card-title">Physics Calculator</div>
+      <div class="form-group">
+        <label class="form-label" for="phys-topic">Topic</label>
+        <select class="form-select" id="phys-topic"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="phys-equation">Equation</label>
+        <select class="form-select" id="phys-equation"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="phys-find">Find</label>
+        <select class="form-select" id="phys-find"></select>
+      </div>
+      <div id="phys-inputs"></div>
+      <button class="btn-calc" id="phys-calculate">CALCULATE</button>
+    </div>
+    <div class="card" id="phys-result-card" style="display:none">
+      <div class="card-title">Solution</div>
+      <div id="phys-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EQUATIONS PAGE ============ -->
+<div class="page" id="page-equations">
+  <div class="card">
+    <div class="card-title">Equation Library</div>
+    <input type="text" class="eq-search" id="eq-search" placeholder="Search equations...">
+    <div id="eq-list"></div>
+  </div>
+</div>
+
+<!-- ============ CONSTANTS PAGE ============ -->
+<div class="page" id="page-constants">
+  <div class="card">
+    <div class="card-title">Physical Constants</div>
+    <div class="const-grid" id="const-list"></div>
+  </div>
+</div>
+
+<!-- ============ HISTORY PAGE ============ -->
+<div class="page" id="page-history">
+  <div class="card">
+    <div class="card-title">All History</div>
+    <div class="hist-actions">
+      <button id="hist-clear-all">Clear All</button>
+    </div>
+    <input type="text" class="eq-search" id="hist-search" placeholder="Search history...">
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS PAGE ============ -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <div class="card-title">Settings</div>
+    <div class="setting-item">
+      <div><div class="setting-name">Theme</div><div class="setting-desc">Dark / Light mode</div></div>
+      <div class="setting-control"><label class="toggle"><input type="checkbox" id="setting-theme"><span class="toggle-slider"></span></label></div>
+    </div>
+    <div class="setting-item">
+      <div><div class="setting-name">Angle Mode</div><div class="setting-desc">Default trig angle unit</div></div>
+      <div class="setting-control"><select id="setting-angle"><option value="DEG">DEG</option><option value="RAD">RAD</option><option value="GRAD">GRAD</option></select></div>
+    </div>
+    <div class="setting-item">
+      <div><div class="setting-name">Precision</div><div class="setting-desc">Decimal places</div></div>
+      <div class="setting-control"><select id="setting-precision"><option value="auto">Auto</option><option value="2">2</option><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option><option value="10">10</option></select></div>
+    </div>
+    <div class="setting-item">
+      <div><div class="setting-name">Notation</div><div class="setting-desc">Number format</div></div>
+      <div class="setting-control"><select id="setting-notation"><option value="auto">Auto</option><option value="decimal">Decimal</option><option value="scientific">Scientific</option><option value="engineering">Engineering</option></select></div>
+    </div>
+    <div class="setting-item">
+      <div><div class="setting-name">Clear History</div></div>
+      <div class="setting-control"><button class="danger" id="setting-clear-history">Clear</button></div>
+    </div>
+    <div class="setting-item">
+      <div><div class="setting-name">Reset Settings</div></div>
+      <div class="setting-control"><button id="setting-reset">Reset</button></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" id="modal-cancel">Cancel</button>
+      <button class="modal-btn-confirm" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ============================================================
+// STATE
+// ============================================================
+const DEFAULTS = {theme:'dark',angleMode:'DEG',precision:'auto',notation:'auto'};
+let S = {...DEFAULTS}, memory=0, lastAns=0, calcExpr='', isInv=false, hist=[];
+
+function ls(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function loadState(){const s=ls('physx_s');if(s)S={...DEFAULTS,...s};const h=ls('physx_h');if(h)hist=h;const m=ls('physx_m');if(m!==null)memory=m||0}
+function saveS(){ls('physx_s',S)}function saveH(){ls('physx_h',hist.slice(-500))}function saveM(){ls('physx_m',memory)}
+
+// ============================================================
+// NUMBER FORMATTING
+// ============================================================
+function fmt(n,forceN){
+  if(n===undefined||n===null||typeof n!=='number')return'Error';
+  if(Number.isNaN(n))return'Error: Not a number';
+  if(!Number.isFinite(n))return n>0?'∞':'−∞';
+  const not=forceN||S.notation,p=S.precision==='auto'?10:parseInt(S.precision);
+  if(not==='scientific')return fmtSci(n,p);
+  if(not==='engineering')return fmtEng(n,p);
+  if(not==='decimal')return fmtDec(n,p);
+  if(Math.abs(n)!==0&&(Math.abs(n)>=1e12||Math.abs(n)<1e-6))return fmtSci(n,p);
+  return fmtDec(n,p);
+}
+function fmtDec(n,p){if(Number.isInteger(n)&&Math.abs(n)<1e15)return String(n);let s=n.toPrecision(Math.min(p+2,15));if(s.indexOf('.')!==-1)s=s.replace(/\.?0+$/,'');return s==='-0'?'0':s}
+function fmtSci(n,p){if(n===0)return'0';const e=Math.floor(Math.log10(Math.abs(n)));const m=n/Math.pow(10,e);let ms=m.toFixed(Math.min(p,12));if(ms.indexOf('.')!==-1)ms=ms.replace(/\.?0+$/,'');return e===0?ms:ms+' × 10'+sup(e)}
+function fmtEng(n,p){if(n===0)return'0';const e=Math.floor(Math.log10(Math.abs(n)));const ee=Math.floor(e/3)*3;const m=n/Math.pow(10,ee);let ms=m.toFixed(Math.min(p,12));if(ms.indexOf('.')!==-1)ms=ms.replace(/\.?0+$/,'');return ee===0?ms:ms+' × 10'+sup(ee)}
+function sup(n){const m={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};return String(n).split('').map(c=>m[c]||c).join('')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// ============================================================
+// EXPRESSION ENGINE — safe parser, NO eval()
+// ============================================================
+const TT={NUM:'N',OP:'O',LP:'(',RP:')',FN:'F',UN:'U',PF:'P',COMMA:','};
+const FNAMES=['sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','asinh','acosh','atanh','log','ln','log2','sqrt','cbrt','abs','exp','floor','ceil','round','sign'];
+
+function degR(d){return d*Math.PI/180}function radD(r){return r*180/Math.PI}function graR(g){return g*Math.PI/200}function radG(r){return r*200/Math.PI}
+function a2r(v){return S.angleMode==='DEG'?degR(v):S.angleMode==='GRAD'?graR(v):v}
+function r2a(v){return S.angleMode==='DEG'?radD(v):S.angleMode==='GRAD'?radG(v):v}
+
+function fact(n){if(n<0)throw Error('Factorial of negative');if(!Number.isInteger(n))throw Error('Factorial requires integer');if(n>170)throw Error('Factorial overflow');let r=1;for(let i=2;i<=n;i++)r*=i;return r}
+
+function evalFn(nm,a){
+  const x=a[0];
+  switch(nm){
+    case 'sin':return Math.sin(a2r(x));
+    case 'cos':return Math.cos(a2r(x));
+    case 'tan':{const r=a2r(x),c=Math.cos(r);if(Math.abs(c)<1e-14)throw Error('tan undefined');return Math.sin(r)/c}
+    case 'asin':if(x<-1||x>1)throw Error('asin domain error');return r2a(Math.asin(x));
+    case 'acos':if(x<-1||x>1)throw Error('acos domain error');return r2a(Math.acos(x));
+    case 'atan':return r2a(Math.atan(x));
+    case 'sinh':return Math.sinh(x);case 'cosh':return Math.cosh(x);case 'tanh':return Math.tanh(x);
+    case 'asinh':return Math.asinh(x);
+    case 'acosh':if(x<1)throw Error('acosh domain error');return Math.acosh(x);
+    case 'atanh':if(x<=-1||x>=1)throw Error('atanh domain error');return Math.atanh(x);
+    case 'log':if(x<=0)throw Error('log domain error');return Math.log10(x);
+    case 'ln':if(x<=0)throw Error('ln domain error');return Math.log(x);
+    case 'log2':if(x<=0)throw Error('log₂ domain error');return Math.log2(x);
+    case 'sqrt':if(x<0)throw Error('√ of negative');return Math.sqrt(x);
+    case 'cbrt':return Math.cbrt(x);
+    case 'abs':return Math.abs(x);case 'exp':return Math.exp(x);
+    case 'floor':return Math.floor(x);case 'ceil':return Math.ceil(x);
+    case 'round':return Math.round(x);case 'sign':return Math.sign(x);
+    default:throw Error('Unknown fn: '+nm);
+  }
+}
+
+function tokenize(expr){
+  const tk=[]; let i=0; const s=expr.replace(/\s+/g,'');
+  while(i<s.length){
+    const c=s[i];
+    if((c>='0'&&c<='9')||(c==='.'&&i+1<s.length&&s[i+1]>='0'&&s[i+1]<='9')){
+      let n='';
+      while(i<s.length&&((s[i]>='0'&&s[i]<='9')||s[i]==='.'))n+=s[i++];
+      if(i<s.length&&(s[i]==='e'||s[i]==='E')&&!(s.substring(i).match(/^exp/i))){
+        n+=s[i++];if(i<s.length&&(s[i]==='+'||s[i]==='-'))n+=s[i++];
+        while(i<s.length&&s[i]>='0'&&s[i]<='9')n+=s[i++];
+      }
+      tk.push({t:TT.NUM,v:parseFloat(n)});continue;
+    }
+    if(c==='('){tk.push({t:TT.LP});i++;continue}
+    if(c===')'){tk.push({t:TT.RP});i++;continue}
+    if(c===','){tk.push({t:TT.COMMA});i++;continue}
+    if(c==='+'){tk.push({t:TT.OP,v:'+',p:1,a:'L'});i++;continue}
+    if(c==='−'||c==='-'){
+      const prev=tk[tk.length-1];
+      if(!prev||prev.t===TT.OP||prev.t===TT.LP||prev.t===TT.COMMA||prev.t===TT.UN)tk.push({t:TT.UN,v:'neg'});
+      else tk.push({t:TT.OP,v:'-',p:1,a:'L'});
+      i++;continue;
+    }
+    if(c==='×'||c==='*'){tk.push({t:TT.OP,v:'*',p:2,a:'L'});i++;continue}
+    if(c==='÷'||c==='/'){tk.push({t:TT.OP,v:'/',p:2,a:'L'});i++;continue}
+    if(c==='%'){tk.push({t:TT.OP,v:'%',p:2,a:'L'});i++;continue}
+    if(c==='^'){tk.push({t:TT.OP,v:'^',p:3,a:'R'});i++;continue}
+    if(c==='!'){tk.push({t:TT.PF,v:'!'});i++;continue}
+    if(c==='√'){tk.push({t:TT.FN,v:'sqrt'});i++;continue}
+    if(c==='∛'){tk.push({t:TT.FN,v:'cbrt'});i++;continue}
+    if(c==='π'){tk.push({t:TT.NUM,v:Math.PI});i++;continue}
+    if(c==='φ'){tk.push({t:TT.NUM,v:(1+Math.sqrt(5))/2});i++;continue}
+    if(c==='E'&&i+1<s.length&&(s[i+1]>='0'||s[i+1]==='-'||s[i+1]==='+')){
+      tk.push({t:TT.OP,v:'*',p:2,a:'L'});tk.push({t:TT.NUM,v:10});tk.push({t:TT.OP,v:'^',p:3,a:'R'});i++;continue;
+    }
+    if((c>='a'&&c<='z')||(c>='A'&&c<='Z')){
+      let nm='';while(i<s.length&&((s[i]>='a'&&s[i]<='z')||(s[i]>='A'&&s[i]<='Z')||(s[i]>='0'&&s[i]<='9')||s[i]==='_'))nm+=s[i++];
+      const lo=nm.toLowerCase();
+      if(FNAMES.indexOf(lo)!==-1){tk.push({t:TT.FN,v:lo});continue}
+      if(lo==='pi'){tk.push({t:TT.NUM,v:Math.PI});continue}
+      if(lo==='e'){tk.push({t:TT.NUM,v:Math.E});continue}
+      if(lo==='phi'){tk.push({t:TT.NUM,v:(1+Math.sqrt(5))/2});continue}
+      if(lo==='ans'){tk.push({t:TT.NUM,v:lastAns});continue}
+      throw Error('Unknown: '+nm);
+    }
+    throw Error('Unexpected: '+c);
+  }
+  // implicit multiply
+  const r=[];
+  for(let j=0;j<tk.length;j++){
+    if(j>0){const p=r[r.length-1];const pv=p.t===TT.NUM||p.t===TT.RP||p.t===TT.PF;const cv=tk[j].t===TT.NUM||tk[j].t===TT.LP||tk[j].t===TT.FN||tk[j].t===TT.UN;if(pv&&cv)r.push({t:TT.OP,v:'*',p:2,a:'L'})}
+    r.push(tk[j]);
+  }
+  return r;
+}
+
+function toRPN(tk){
+  const out=[],ops=[];
+  for(const t of tk){
+    if(t.t===TT.NUM)out.push(t);
+    else if(t.t===TT.FN)ops.push(t);
+    else if(t.t===TT.UN)ops.push(t);
+    else if(t.t===TT.PF)out.push(t);
+    else if(t.t===TT.OP){
+      while(ops.length){const top=ops[ops.length-1];if(top.t===TT.LP)break;if(top.t===TT.OP&&((t.a==='L'&&t.p<=top.p)||(t.a==='R'&&t.p<top.p)))out.push(ops.pop());else if(top.t===TT.UN)out.push(ops.pop());else break}
+      ops.push(t);
+    }else if(t.t===TT.LP)ops.push(t);
+    else if(t.t===TT.RP){while(ops.length&&ops[ops.length-1].t!==TT.LP)out.push(ops.pop());if(!ops.length)throw Error('Mismatched parens');ops.pop();if(ops.length&&ops[ops.length-1].t===TT.FN)out.push(ops.pop())}
+    else if(t.t===TT.COMMA){while(ops.length&&ops[ops.length-1].t!==TT.LP)out.push(ops.pop())}
+  }
+  while(ops.length){const t=ops.pop();if(t.t===TT.LP||t.t===TT.RP)throw Error('Mismatched parens');out.push(t)}
+  return out;
+}
+
+function evalRPN(rpn){
+  const st=[];
+  for(const t of rpn){
+    if(t.t===TT.NUM)st.push(t.v);
+    else if(t.t===TT.OP){if(st.length<2)throw Error('Invalid expr');const b=st.pop(),a=st.pop();
+      switch(t.v){case'+':st.push(a+b);break;case'-':st.push(a-b);break;case'*':st.push(a*b);break;case'/':if(b===0)throw Error('Division by zero');st.push(a/b);break;case'%':st.push(a*b/100);break;case'^':st.push(Math.pow(a,b));break;default:throw Error('Unknown op')}
+    }else if(t.t===TT.FN){if(!st.length)throw Error('Missing arg');st.push(evalFn(t.v,[st.pop()]))}
+    else if(t.t===TT.UN){if(!st.length)throw Error('Invalid');st.push(-st.pop())}
+    else if(t.t===TT.PF){if(!st.length)throw Error('Invalid');st.push(fact(st.pop()))}
+  }
+  if(st.length!==1)throw Error('Invalid expression');return st[0];
+}
+
+function evaluate(e){if(!e||!e.trim())throw Error('Empty');return evalRPN(toRPN(tokenize(e)))}
+
+// ============================================================
+// UNIT ENGINE
+// ============================================================
+const UDB={
+  m:{d:'L',f:1},km:{d:'L',f:1e3},cm:{d:'L',f:.01},mm:{d:'L',f:1e-3},nm:{d:'L',f:1e-9},'μm':{d:'L',f:1e-6},
+  s:{d:'T',f:1},min:{d:'T',f:60},h:{d:'T',f:3600},
+  kg:{d:'M',f:1},g:{d:'M',f:1e-3},mg:{d:'M',f:1e-6},
+  'm/s':{d:'LT⁻¹',f:1},'km/h':{d:'LT⁻¹',f:1/3.6},
+  'm/s²':{d:'LT⁻²',f:1},
+  N:{d:'F',f:1},kN:{d:'F',f:1e3},
+  J:{d:'E',f:1},kJ:{d:'E',f:1e3},eV:{d:'E',f:1.602176634e-19},
+  W:{d:'P',f:1},kW:{d:'P',f:1e3},
+  Pa:{d:'Pr',f:1},kPa:{d:'Pr',f:1e3},bar:{d:'Pr',f:1e5},atm:{d:'Pr',f:101325},
+  C:{d:'Q',f:1},V:{d:'V',f:1},A:{d:'I',f:1},'Ω':{d:'R',f:1},ohm:{d:'R',f:1},
+  Hz:{d:'Fr',f:1},kHz:{d:'Fr',f:1e3},MHz:{d:'Fr',f:1e6},GHz:{d:'Fr',f:1e9},
+  deg:{d:'a',f:1},rad:{d:'a',f:180/Math.PI},
+  K:{d:'Θ',f:1},'°C':{d:'Θ',f:1,off:273.15},
+  '':{d:'',f:1},'mol':{d:'N',f:1},'m³':{d:'V',f:1},
+  'J/(kg·K)':{d:'shc',f:1},'rad/s':{d:'ω',f:1},'N/C':{d:'EF',f:1},'kg·m/s':{d:'mom',f:1},'N·s':{d:'imp',f:1},
+};
+function toSI(v,u){const d=UDB[u];return d?v*d.f:v}
+function fromSI(v,u){const d=UDB[u];return d?v/d.f:v}
+
+// ============================================================
+// PHYSICS CONSTANTS
+// ============================================================
+const PCONST=[
+  {s:'π',n:'Pi',v:Math.PI,u:'',d:true},{s:'e',n:"Euler's number",v:Math.E,u:'',d:true},
+  {s:'φ',n:'Golden ratio',v:(1+Math.sqrt(5))/2,u:'',d:true},
+  {s:'c',n:'Speed of light',v:299792458,u:'m/s',d:true},
+  {s:'G',n:'Gravitational constant',v:6.67430e-11,u:'N·m²/kg²',d:false},
+  {s:'h',n:'Planck constant',v:6.62607015e-34,u:'J·s',d:true},
+  {s:'k_B',n:'Boltzmann constant',v:1.380649e-23,u:'J/K',d:true},
+  {s:'g',n:'Standard gravity',v:9.80665,u:'m/s²',d:true},
+  {s:'ε₀',n:'Vacuum permittivity',v:8.8541878128e-12,u:'F/m',d:false},
+  {s:'μ₀',n:'Vacuum permeability',v:1.25663706212e-6,u:'H/m',d:false},
+  {s:'k_e',n:'Coulomb constant',v:8.9875517923e9,u:'N·m²/C²',d:false},
+  {s:'N_A',n:'Avogadro constant',v:6.02214076e23,u:'1/mol',d:true},
+  {s:'R',n:'Gas constant',v:8.314462618,u:'J/(mol·K)',d:true},
+  {s:'σ',n:'Stefan-Boltzmann',v:5.670374419e-8,u:'W/(m²·K⁴)',d:false},
+  {s:'e⁻',n:'Elementary charge',v:1.602176634e-19,u:'C',d:true},
+  {s:'m_e',n:'Electron mass',v:9.1093837015e-31,u:'kg',d:false},
+];
+
+// ============================================================
+// PHYSICS EQUATIONS (complete set)
+// ============================================================
+function mkStep(l,t){return{label:l,text:t}}
+function mkSolve(formula,vars,assumptions,solveFn){return{formula,variables:vars,assumptions:assumptions||[],solve:solveFn}}
+
+const PHYS_EQ = [
+  // KINEMATICS
+  {id:'k1',topic:'Kinematics',formula:'v = u + at',variables:{v:{name:'Final velocity',siUnit:'m/s',units:['m/s','km/h']},u:{name:'Initial velocity',siUnit:'m/s',units:['m/s','km/h']},a:{name:'Acceleration',siUnit:'m/s²',units:['m/s²']},t:{name:'Time',siUnit:'s',units:['s','min','h']}},assumptions:['Constant acceleration'],
+    solve(k,f){switch(f){case'v':return{value:k.u+k.a*k.t,steps:[mkStep('Formula','v = u + at'),mkStep('Substitute',`v = ${fmt(k.u)} + ${fmt(k.a)}×${fmt(k.t)}`),mkStep('Result',`v = ${fmt(k.u+k.a*k.t)}`)]};case'u':return{value:k.v-k.a*k.t,steps:[mkStep('Formula','u = v − at'),mkStep('Result',`u = ${fmt(k.v-k.a*k.t)}`)]};case'a':if(k.t===0)throw Error('t=0');return{value:(k.v-k.u)/k.t,steps:[mkStep('Formula','a = (v−u)/t'),mkStep('Result',`a = ${fmt((k.v-k.u)/k.t)}`)]};case't':if(k.a===0)throw Error('a=0');return{value:(k.v-k.u)/k.a,steps:[mkStep('Formula','t = (v−u)/a'),mkStep('Result',`t = ${fmt((k.v-k.u)/k.a)}`)]};}}},
+  {id:'k2',topic:'Kinematics',formula:'s = ut + ½at²',variables:{s:{name:'Displacement',siUnit:'m',units:['m','km','cm']},u:{name:'Initial velocity',siUnit:'m/s',units:['m/s','km/h']},a:{name:'Acceleration',siUnit:'m/s²',units:['m/s²']},t:{name:'Time',siUnit:'s',units:['s','min','h']}},assumptions:['Constant acceleration'],
+    solve(k,f){switch(f){case's':return{value:k.u*k.t+.5*k.a*k.t*k.t,steps:[mkStep('Formula','s = ut + ½at²'),mkStep('Result',`s = ${fmt(k.u*k.t+.5*k.a*k.t*k.t)}`)]};case'u':if(k.t===0)throw Error('t=0');return{value:(k.s-.5*k.a*k.t*k.t)/k.t,steps:[mkStep('Formula','u = (s − ½at²)/t'),mkStep('Result',`u = ${fmt((k.s-.5*k.a*k.t*k.t)/k.t)}`)]};case'a':if(k.t===0)throw Error('t=0');return{value:2*(k.s-k.u*k.t)/(k.t*k.t),steps:[mkStep('Formula','a = 2(s−ut)/t²'),mkStep('Result',`a = ${fmt(2*(k.s-k.u*k.t)/(k.t*k.t))}`)]};case't':{if(k.a===0){if(k.u===0)throw Error('u=a=0');return{value:k.s/k.u,steps:[mkStep('Formula','t = s/u (a=0)'),mkStep('Result',`t = ${fmt(k.s/k.u)}`)]}};const A=.5*k.a,B=k.u,C=-k.s,D=B*B-4*A*C;if(D<0)throw Error('No real solution');const t1=(-B+Math.sqrt(D))/(2*A),t2=(-B-Math.sqrt(D))/(2*A);let ch=t1>=0?t1:t2;if(t1>=0&&t2>=0)ch=Math.min(t1,t2);if(ch<0)throw Error('No positive t');return{value:ch,steps:[mkStep('Quadratic',`${fmt(A)}t²+${fmt(B)}t+${fmt(C)}=0`),mkStep('Discriminant',`Δ = ${fmt(D)}`),mkStep('Solutions',`t₁=${fmt(t1)}, t₂=${fmt(t2)}`),mkStep('Result',`t = ${fmt(ch)}`)]};}}}},
+  {id:'k3',topic:'Kinematics',formula:'v² = u² + 2as',variables:{v:{name:'Final velocity',siUnit:'m/s',units:['m/s','km/h']},u:{name:'Initial velocity',siUnit:'m/s',units:['m/s','km/h']},a:{name:'Acceleration',siUnit:'m/s²',units:['m/s²']},s:{name:'Displacement',siUnit:'m',units:['m','km','cm']}},assumptions:['Constant acceleration'],
+    solve(k,f){switch(f){case'v':{const r=k.u*k.u+2*k.a*k.s;if(r<0)throw Error('v² < 0');return{value:Math.sqrt(r),steps:[mkStep('Formula','v²=u²+2as'),mkStep('Result',`v = ${fmt(Math.sqrt(r))}`)]}};case'u':{const r=k.v*k.v-2*k.a*k.s;if(r<0)throw Error('u² < 0');return{value:Math.sqrt(r),steps:[mkStep('Result',`u = ${fmt(Math.sqrt(r))}`)]}};case'a':if(k.s===0)throw Error('s=0');return{value:(k.v*k.v-k.u*k.u)/(2*k.s),steps:[mkStep('Result',`a = ${fmt((k.v*k.v-k.u*k.u)/(2*k.s))}`)]}; case's':if(k.a===0)throw Error('a=0');return{value:(k.v*k.v-k.u*k.u)/(2*k.a),steps:[mkStep('Result',`s = ${fmt((k.v*k.v-k.u*k.u)/(2*k.a))}`)]};}}},
+  {id:'k4',topic:'Kinematics',formula:'s = (u+v)t/2',variables:{s:{name:'Displacement',siUnit:'m',units:['m','km']},u:{name:'Initial velocity',siUnit:'m/s',units:['m/s','km/h']},v:{name:'Final velocity',siUnit:'m/s',units:['m/s','km/h']},t:{name:'Time',siUnit:'s',units:['s','min']}},assumptions:['Constant acceleration'],
+    solve(k,f){switch(f){case's':return{value:(k.u+k.v)*k.t/2,steps:[mkStep('Result',`s = ${fmt((k.u+k.v)*k.t/2)}`)]}; case'u':if(k.t===0)throw Error('t=0');return{value:2*k.s/k.t-k.v,steps:[mkStep('Result',`u = ${fmt(2*k.s/k.t-k.v)}`)]}; case'v':if(k.t===0)throw Error('t=0');return{value:2*k.s/k.t-k.u,steps:[mkStep('Result',`v = ${fmt(2*k.s/k.t-k.u)}`)]}; case't':{const d=k.u+k.v;if(d===0)throw Error('u+v=0');return{value:2*k.s/d,steps:[mkStep('Result',`t = ${fmt(2*k.s/d)}`)]}}}}},
+  // MECHANICS
+  {id:'m1',topic:'Mechanics',formula:'F = ma',variables:{F:{name:'Force',siUnit:'N',units:['N','kN']},m:{name:'Mass',siUnit:'kg',units:['kg','g']},a:{name:'Acceleration',siUnit:'m/s²',units:['m/s²']}},assumptions:['Net force'],
+    solve(k,f){switch(f){case'F':return{value:k.m*k.a,steps:[mkStep('F = ma',`F = ${fmt(k.m)}×${fmt(k.a)} = ${fmt(k.m*k.a)}`)]}; case'm':if(k.a===0)throw Error('a=0');return{value:k.F/k.a,steps:[mkStep('m = F/a',`m = ${fmt(k.F/k.a)}`)]}; case'a':if(k.m===0)throw Error('m=0');return{value:k.F/k.m,steps:[mkStep('a = F/m',`a = ${fmt(k.F/k.m)}`)]};}}},
+  {id:'m2',topic:'Mechanics',formula:'p = mv',variables:{p:{name:'Momentum',siUnit:'kg·m/s',units:['kg·m/s']},m:{name:'Mass',siUnit:'kg',units:['kg','g']},v:{name:'Velocity',siUnit:'m/s',units:['m/s','km/h']}},assumptions:[],
+    solve(k,f){switch(f){case'p':return{value:k.m*k.v,steps:[mkStep('Result',`p = ${fmt(k.m*k.v)}`)]}; case'm':if(k.v===0)throw Error('v=0');return{value:k.p/k.v,steps:[mkStep('Result',`m = ${fmt(k.p/k.v)}`)]}; case'v':if(k.m===0)throw Error('m=0');return{value:k.p/k.m,steps:[mkStep('Result',`v = ${fmt(k.p/k.m)}`)]};}}},
+  {id:'m3',topic:'Mechanics',formula:'J = FΔt',variables:{J:{name:'Impulse',siUnit:'N·s',units:['N·s']},F:{name:'Force',siUnit:'N',units:['N']},dt:{name:'Time interval',siUnit:'s',units:['s']}},assumptions:['Constant force'],
+    solve(k,f){switch(f){case'J':return{value:k.F*k.dt,steps:[mkStep('Result',`J = ${fmt(k.F*k.dt)}`)]}; case'F':if(k.dt===0)throw Error('Δt=0');return{value:k.J/k.dt,steps:[mkStep('Result',`F = ${fmt(k.J/k.dt)}`)]}; case'dt':if(k.F===0)throw Error('F=0');return{value:k.J/k.F,steps:[mkStep('Result',`Δt = ${fmt(k.J/k.F)}`)]};}}},
+  // WORK & ENERGY
+  {id:'we1',topic:'Work & Energy',formula:'W = Fs cos θ',variables:{W:{name:'Work',siUnit:'J',units:['J','kJ']},F:{name:'Force',siUnit:'N',units:['N']},s:{name:'Displacement',siUnit:'m',units:['m','km']},theta:{name:'Angle (θ)',siUnit:'deg',units:['deg','rad']}},assumptions:['Constant force'],
+    solve(k,f){const cT=Math.cos(k.theta*Math.PI/180);switch(f){case'W':return{value:k.F*k.s*cT,steps:[mkStep('W = Fs cos θ',`W = ${fmt(k.F*k.s*cT)}`)]}; case'F':{const d=k.s*cT;if(Math.abs(d)<1e-15)throw Error('s·cosθ=0');return{value:k.W/d,steps:[mkStep('Result',`F = ${fmt(k.W/d)}`)]}}; case's':{const d=k.F*cT;if(Math.abs(d)<1e-15)throw Error('F·cosθ=0');return{value:k.W/d,steps:[mkStep('Result',`s = ${fmt(k.W/d)}`)]}}; case'theta':{const d=k.F*k.s;if(Math.abs(d)<1e-15)throw Error('F·s=0');const cv=k.W/d;if(cv<-1||cv>1)throw Error('cos out of range');return{value:Math.acos(cv)*180/Math.PI,steps:[mkStep('Result',`θ = ${fmt(Math.acos(cv)*180/Math.PI)}°`)]}};}}},
+  {id:'we2',topic:'Work & Energy',formula:'KE = ½mv²',variables:{KE:{name:'Kinetic energy',siUnit:'J',units:['J','kJ']},m:{name:'Mass',siUnit:'kg',units:['kg','g']},v:{name:'Velocity',siUnit:'m/s',units:['m/s','km/h']}},assumptions:['Non-relativistic'],
+    solve(k,f){switch(f){case'KE':return{value:.5*k.m*k.v*k.v,steps:[mkStep('Result',`KE = ${fmt(.5*k.m*k.v*k.v)}`)]}; case'm':if(k.v===0)throw Error('v=0');return{value:2*k.KE/(k.v*k.v),steps:[mkStep('Result',`m = ${fmt(2*k.KE/(k.v*k.v))}`)]}; case'v':if(k.m===0)throw Error('m=0');{const r=2*k.KE/k.m;if(r<0)throw Error('<0');return{value:Math.sqrt(r),steps:[mkStep('Result',`v = ${fmt(Math.sqrt(r))}`)]}}}}},
+  {id:'we3',topic:'Work & Energy',formula:'PE = mgh',variables:{PE:{name:'Potential energy',siUnit:'J',units:['J','kJ']},m:{name:'Mass',siUnit:'kg',units:['kg','g']},g_acc:{name:'g',siUnit:'m/s²',units:['m/s²']},h:{name:'Height',siUnit:'m',units:['m','km','cm']}},assumptions:['Uniform field'],
+    solve(k,f){switch(f){case'PE':return{value:k.m*k.g_acc*k.h,steps:[mkStep('Result',`PE = ${fmt(k.m*k.g_acc*k.h)}`)]}; case'm':{const d=k.g_acc*k.h;if(d===0)throw Error('g·h=0');return{value:k.PE/d,steps:[mkStep('Result',`m = ${fmt(k.PE/d)}`)]}};case'g_acc':{const d=k.m*k.h;if(d===0)throw Error('m·h=0');return{value:k.PE/d,steps:[mkStep('Result',`g = ${fmt(k.PE/d)}`)]}};case'h':{const d=k.m*k.g_acc;if(d===0)throw Error('m·g=0');return{value:k.PE/d,steps:[mkStep('Result',`h = ${fmt(k.PE/d)}`)]}}}}},
+  {id:'we4',topic:'Work & Energy',formula:'P = W/t',variables:{P:{name:'Power',siUnit:'W',units:['W','kW']},W:{name:'Work',siUnit:'J',units:['J','kJ']},t:{name:'Time',siUnit:'s',units:['s','min','h']}},assumptions:[],
+    solve(k,f){switch(f){case'P':if(k.t===0)throw Error('t=0');return{value:k.W/k.t,steps:[mkStep('Result',`P = ${fmt(k.W/k.t)}`)]};case'W':return{value:k.P*k.t,steps:[mkStep('Result',`W = ${fmt(k.P*k.t)}`)]};case't':if(k.P===0)throw Error('P=0');return{value:k.W/k.P,steps:[mkStep('Result',`t = ${fmt(k.W/k.P)}`)]};}}},
+  // CIRCULAR MOTION
+  {id:'c1',topic:'Circular Motion',formula:'v = rω',variables:{v:{name:'Linear velocity',siUnit:'m/s',units:['m/s']},r:{name:'Radius',siUnit:'m',units:['m','cm']},omega:{name:'Angular velocity ω',siUnit:'rad/s',units:['rad/s']}},assumptions:[],
+    solve(k,f){switch(f){case'v':return{value:k.r*k.omega,steps:[mkStep('Result',`v = ${fmt(k.r*k.omega)}`)]}; case'r':if(k.omega===0)throw Error('ω=0');return{value:k.v/k.omega,steps:[mkStep('Result',`r = ${fmt(k.v/k.omega)}`)]};case'omega':if(k.r===0)throw Error('r=0');return{value:k.v/k.r,steps:[mkStep('Result',`ω = ${fmt(k.v/k.r)}`)]};}}},
+  {id:'c2',topic:'Circular Motion',formula:'a = v²/r',variables:{a:{name:'Centripetal acceleration',siUnit:'m/s²',units:['m/s²']},v:{name:'Velocity',siUnit:'m/s',units:['m/s']},r:{name:'Radius',siUnit:'m',units:['m','cm']}},assumptions:['Uniform circular motion'],
+    solve(k,f){switch(f){case'a':if(k.r===0)throw Error('r=0');return{value:k.v*k.v/k.r,steps:[mkStep('Result',`a = ${fmt(k.v*k.v/k.r)}`)]}; case'v':{const r2=k.a*k.r;if(r2<0)throw Error('<0');return{value:Math.sqrt(r2),steps:[mkStep('Result',`v = ${fmt(Math.sqrt(r2))}`)]}};case'r':if(k.a===0)throw Error('a=0');return{value:k.v*k.v/k.a,steps:[mkStep('Result',`r = ${fmt(k.v*k.v/k.a)}`)]};}}},
+  {id:'c3',topic:'Circular Motion',formula:'F = mv²/r',variables:{F:{name:'Centripetal force',siUnit:'N',units:['N']},m:{name:'Mass',siUnit:'kg',units:['kg']},v:{name:'Velocity',siUnit:'m/s',units:['m/s']},r:{name:'Radius',siUnit:'m',units:['m']}},assumptions:[],
+    solve(k,f){switch(f){case'F':if(k.r===0)throw Error('r=0');return{value:k.m*k.v*k.v/k.r,steps:[mkStep('Result',`F = ${fmt(k.m*k.v*k.v/k.r)}`)]};case'm':{const d=k.v*k.v;if(d===0)throw Error('v=0');return{value:k.F*k.r/d,steps:[mkStep('Result',`m = ${fmt(k.F*k.r/d)}`)]}}; case'v':{if(k.m===0)throw Error('m=0');const r2=k.F*k.r/k.m;if(r2<0)throw Error('<0');return{value:Math.sqrt(r2),steps:[mkStep('Result',`v = ${fmt(Math.sqrt(r2))}`)]}}; case'r':if(k.F===0)throw Error('F=0');return{value:k.m*k.v*k.v/k.F,steps:[mkStep('Result',`r = ${fmt(k.m*k.v*k.v/k.F)}`)]};}}},
+  // GRAVITATION
+  {id:'g1',topic:'Gravitation',formula:'F = Gm₁m₂/r²',variables:{F:{name:'Gravitational force',siUnit:'N',units:['N']},m1:{name:'Mass 1',siUnit:'kg',units:['kg']},m2:{name:'Mass 2',siUnit:'kg',units:['kg']},r:{name:'Distance',siUnit:'m',units:['m','km']}},assumptions:['G = 6.67430×10⁻¹¹'],
+    solve(k,f){const G=6.67430e-11;switch(f){case'F':if(k.r===0)throw Error('r=0');return{value:G*k.m1*k.m2/(k.r*k.r),steps:[mkStep('Result',`F = ${fmt(G*k.m1*k.m2/(k.r*k.r))}`)]}; case'm1':return{value:k.F*k.r*k.r/(G*k.m2),steps:[mkStep('Result',`m₁ = ${fmt(k.F*k.r*k.r/(G*k.m2))}`)]}; case'm2':return{value:k.F*k.r*k.r/(G*k.m1),steps:[mkStep('Result',`m₂ = ${fmt(k.F*k.r*k.r/(G*k.m1))}`)]}; case'r':{if(k.F===0)throw Error('F=0');const v=G*k.m1*k.m2/k.F;return{value:Math.sqrt(Math.abs(v)),steps:[mkStep('Result',`r = ${fmt(Math.sqrt(Math.abs(v)))}`)]}};}}},
+  {id:'g2',topic:'Gravitation',formula:'g = GM/r²',variables:{g_field:{name:'Field strength',siUnit:'m/s²',units:['m/s²']},M:{name:'Mass',siUnit:'kg',units:['kg']},r:{name:'Distance',siUnit:'m',units:['m','km']}},assumptions:['Spherical symmetry'],
+    solve(k,f){const G=6.67430e-11;switch(f){case'g_field':if(k.r===0)throw Error('r=0');return{value:G*k.M/(k.r*k.r),steps:[mkStep('Result',`g = ${fmt(G*k.M/(k.r*k.r))}`)]}; case'M':return{value:k.g_field*k.r*k.r/G,steps:[mkStep('Result',`M = ${fmt(k.g_field*k.r*k.r/G)}`)]}; case'r':if(k.g_field===0)throw Error('g=0');{const v=G*k.M/k.g_field;return{value:Math.sqrt(Math.abs(v)),steps:[mkStep('Result',`r = ${fmt(Math.sqrt(Math.abs(v)))}`)]}}}}},
+  // ELECTRICITY
+  {id:'e1',topic:'Electricity',formula:'V = IR',variables:{V:{name:'Voltage',siUnit:'V',units:['V']},I:{name:'Current',siUnit:'A',units:['A']},R:{name:'Resistance',siUnit:'Ω',units:['Ω']}},assumptions:["Ohm's law"],
+    solve(k,f){switch(f){case'V':return{value:k.I*k.R,steps:[mkStep('Result',`V = ${fmt(k.I*k.R)}`)]};case'I':if(k.R===0)throw Error('R=0');return{value:k.V/k.R,steps:[mkStep('Result',`I = ${fmt(k.V/k.R)}`)]};case'R':if(k.I===0)throw Error('I=0');return{value:k.V/k.I,steps:[mkStep('Result',`R = ${fmt(k.V/k.I)}`)]};}}},
+  {id:'e2',topic:'Electricity',formula:'P = VI',variables:{P:{name:'Power',siUnit:'W',units:['W','kW']},V:{name:'Voltage',siUnit:'V',units:['V']},I:{name:'Current',siUnit:'A',units:['A']}},assumptions:[],
+    solve(k,f){switch(f){case'P':return{value:k.V*k.I,steps:[mkStep('Result',`P = ${fmt(k.V*k.I)}`)]};case'V':if(k.I===0)throw Error('I=0');return{value:k.P/k.I,steps:[mkStep('Result',`V = ${fmt(k.P/k.I)}`)]};case'I':if(k.V===0)throw Error('V=0');return{value:k.P/k.V,steps:[mkStep('Result',`I = ${fmt(k.P/k.V)}`)]};}}},
+  {id:'e3',topic:'Electricity',formula:'P = I²R',variables:{P:{name:'Power',siUnit:'W',units:['W']},I:{name:'Current',siUnit:'A',units:['A']},R:{name:'Resistance',siUnit:'Ω',units:['Ω']}},assumptions:[],
+    solve(k,f){switch(f){case'P':return{value:k.I*k.I*k.R,steps:[mkStep('Result',`P = ${fmt(k.I*k.I*k.R)}`)]};case'I':if(k.R===0)throw Error('R=0');{const v=k.P/k.R;if(v<0)throw Error('<0');return{value:Math.sqrt(v),steps:[mkStep('Result',`I = ${fmt(Math.sqrt(v))}`)]}};case'R':if(k.I===0)throw Error('I=0');return{value:k.P/(k.I*k.I),steps:[mkStep('Result',`R = ${fmt(k.P/(k.I*k.I))}`)]};}}},
+  {id:'e4',topic:'Electricity',formula:'P = V²/R',variables:{P:{name:'Power',siUnit:'W',units:['W']},V:{name:'Voltage',siUnit:'V',units:['V']},R:{name:'Resistance',siUnit:'Ω',units:['Ω']}},assumptions:[],
+    solve(k,f){switch(f){case'P':if(k.R===0)throw Error('R=0');return{value:k.V*k.V/k.R,steps:[mkStep('Result',`P = ${fmt(k.V*k.V/k.R)}`)]};case'V':{const v=k.P*k.R;if(v<0)throw Error('<0');return{value:Math.sqrt(v),steps:[mkStep('Result',`V = ${fmt(Math.sqrt(v))}`)]}};case'R':if(k.P===0)throw Error('P=0');return{value:k.V*k.V/k.P,steps:[mkStep('Result',`R = ${fmt(k.V*k.V/k.P)}`)]};}}},
+  {id:'e5',topic:'Electricity',formula:'Q = It',variables:{Q:{name:'Charge',siUnit:'C',units:['C']},I:{name:'Current',siUnit:'A',units:['A']},t:{name:'Time',siUnit:'s',units:['s','min','h']}},assumptions:['Constant current'],
+    solve(k,f){switch(f){case'Q':return{value:k.I*k.t,steps:[mkStep('Result',`Q = ${fmt(k.I*k.t)}`)]};case'I':if(k.t===0)throw Error('t=0');return{value:k.Q/k.t,steps:[mkStep('Result',`I = ${fmt(k.Q/k.t)}`)]};case't':if(k.I===0)throw Error('I=0');return{value:k.Q/k.I,steps:[mkStep('Result',`t = ${fmt(k.Q/k.I)}`)]};}}},
+  // ELECTROSTATICS
+  {id:'es1',topic:'Electrostatics',formula:'F = kq₁q₂/r²',variables:{F:{name:'Force',siUnit:'N',units:['N']},q1:{name:'Charge 1',siUnit:'C',units:['C']},q2:{name:'Charge 2',siUnit:'C',units:['C']},r:{name:'Distance',siUnit:'m',units:['m','cm','mm']}},assumptions:['k = 8.9876×10⁹'],
+    solve(k2,f){const kc=8.9875517923e9;switch(f){case'F':if(k2.r===0)throw Error('r=0');return{value:kc*k2.q1*k2.q2/(k2.r*k2.r),steps:[mkStep('Result',`F = ${fmt(kc*k2.q1*k2.q2/(k2.r*k2.r))}`)]};case'q1':return{value:k2.F*k2.r*k2.r/(kc*k2.q2),steps:[mkStep('Result',`q₁ = ${fmt(k2.F*k2.r*k2.r/(kc*k2.q2))}`)]}; case'q2':return{value:k2.F*k2.r*k2.r/(kc*k2.q1),steps:[mkStep('Result',`q₂ = ${fmt(k2.F*k2.r*k2.r/(kc*k2.q1))}`)]}; case'r':if(k2.F===0)throw Error('F=0');{const v=kc*k2.q1*k2.q2/k2.F;return{value:Math.sqrt(Math.abs(v)),steps:[mkStep('Result',`r = ${fmt(Math.sqrt(Math.abs(v)))}`)]}}}}},
+  {id:'es2',topic:'Electrostatics',formula:'E = F/q',variables:{E_field:{name:'Electric field',siUnit:'N/C',units:['N/C']},F:{name:'Force',siUnit:'N',units:['N']},q:{name:'Charge',siUnit:'C',units:['C']}},assumptions:[],
+    solve(k,f){switch(f){case'E_field':if(k.q===0)throw Error('q=0');return{value:k.F/k.q,steps:[mkStep('Result',`E = ${fmt(k.F/k.q)}`)]};case'F':return{value:k.E_field*k.q,steps:[mkStep('Result',`F = ${fmt(k.E_field*k.q)}`)]};case'q':if(k.E_field===0)throw Error('E=0');return{value:k.F/k.E_field,steps:[mkStep('Result',`q = ${fmt(k.F/k.E_field)}`)]};}}},
+  // WAVES
+  {id:'w1',topic:'Waves',formula:'v = fλ',variables:{v:{name:'Wave speed',siUnit:'m/s',units:['m/s']},f:{name:'Frequency',siUnit:'Hz',units:['Hz','kHz','MHz']},lambda:{name:'Wavelength λ',siUnit:'m',units:['m','cm','mm','nm']}},assumptions:[],
+    solve(k,f2){switch(f2){case'v':return{value:k.f*k.lambda,steps:[mkStep('Result',`v = ${fmt(k.f*k.lambda)}`)]};case'f':if(k.lambda===0)throw Error('λ=0');return{value:k.v/k.lambda,steps:[mkStep('Result',`f = ${fmt(k.v/k.lambda)}`)]};case'lambda':if(k.f===0)throw Error('f=0');return{value:k.v/k.f,steps:[mkStep('Result',`λ = ${fmt(k.v/k.f)}`)]};}}},
+  // OPTICS
+  {id:'o1',topic:'Optics',formula:'1/f = 1/v − 1/u',variables:{f:{name:'Focal length',siUnit:'m',units:['m','cm']},v_img:{name:'Image dist v',siUnit:'m',units:['m','cm']},u_obj:{name:'Object dist u',siUnit:'m',units:['m','cm']}},assumptions:['Thin lens equation'],
+    solve(k,f2){switch(f2){case'f':{const iv=1/k.v_img-1/k.u_obj;if(iv===0)throw Error('1/v-1/u=0');return{value:1/iv,steps:[mkStep('Result',`f = ${fmt(1/iv)}`)]}}; case'v_img':{const iv=1/k.f+1/k.u_obj;if(iv===0)throw Error('Image at ∞');return{value:1/iv,steps:[mkStep('Result',`v = ${fmt(1/iv)}`)]}}; case'u_obj':{const iv=1/k.v_img-1/k.f;if(iv===0)throw Error('Object at ∞');return{value:1/iv,steps:[mkStep('Result',`u = ${fmt(1/iv)}`)]}}}}},
+  // MODERN PHYSICS
+  {id:'mp1',topic:'Modern Physics',formula:'E = mc²',variables:{E:{name:'Energy',siUnit:'J',units:['J','kJ']},m:{name:'Mass',siUnit:'kg',units:['kg','g']}},assumptions:['c = 299792458 m/s'],
+    solve(k,f){const c2=299792458*299792458;switch(f){case'E':return{value:k.m*c2,steps:[mkStep('Result',`E = ${fmt(k.m*c2)}`)]};case'm':return{value:k.E/c2,steps:[mkStep('Result',`m = ${fmt(k.E/c2)}`)]};}}},
+  {id:'mp2',topic:'Modern Physics',formula:'E = hf',variables:{E:{name:'Photon energy',siUnit:'J',units:['J','eV']},f:{name:'Frequency',siUnit:'Hz',units:['Hz','kHz','MHz','GHz']}},assumptions:['h = 6.626×10⁻³⁴'],
+    solve(k,f2){const h=6.62607015e-34;switch(f2){case'E':return{value:h*k.f,steps:[mkStep('Result',`E = ${fmt(h*k.f)}`)]};case'f':return{value:k.E/h,steps:[mkStep('Result',`f = ${fmt(k.E/h)}`)]};}}},
+  // THERMODYNAMICS
+  {id:'t1',topic:'Thermodynamics',formula:'Q = mcΔT',variables:{Q:{name:'Heat',siUnit:'J',units:['J','kJ']},m:{name:'Mass',siUnit:'kg',units:['kg','g']},c_spec:{name:'Specific heat',siUnit:'J/(kg·K)',units:['J/(kg·K)']},dT:{name:'ΔT',siUnit:'K',units:['K','°C']}},assumptions:['No phase change'],
+    solve(k,f){switch(f){case'Q':return{value:k.m*k.c_spec*k.dT,steps:[mkStep('Result',`Q = ${fmt(k.m*k.c_spec*k.dT)}`)]};case'm':{const d=k.c_spec*k.dT;if(d===0)throw Error('c·ΔT=0');return{value:k.Q/d,steps:[mkStep('Result',`m = ${fmt(k.Q/d)}`)]}};case'c_spec':{const d=k.m*k.dT;if(d===0)throw Error('m·ΔT=0');return{value:k.Q/d,steps:[mkStep('Result',`c = ${fmt(k.Q/d)}`)]}};case'dT':{const d=k.m*k.c_spec;if(d===0)throw Error('m·c=0');return{value:k.Q/d,steps:[mkStep('Result',`ΔT = ${fmt(k.Q/d)}`)]}}}}},
+  {id:'t2',topic:'Thermodynamics',formula:'PV = nRT',variables:{P_press:{name:'Pressure',siUnit:'Pa',units:['Pa','kPa','atm']},V_vol:{name:'Volume',siUnit:'m³',units:['m³']},n_mol:{name:'Moles',siUnit:'mol',units:['mol']},T_temp:{name:'Temperature',siUnit:'K',units:['K']}},assumptions:['Ideal gas','R = 8.314'],
+    solve(k,f){const R=8.314462618;switch(f){case'P_press':if(k.V_vol===0)throw Error('V=0');return{value:k.n_mol*R*k.T_temp/k.V_vol,steps:[mkStep('Result',`P = ${fmt(k.n_mol*R*k.T_temp/k.V_vol)}`)]};case'V_vol':if(k.P_press===0)throw Error('P=0');return{value:k.n_mol*R*k.T_temp/k.P_press,steps:[mkStep('Result',`V = ${fmt(k.n_mol*R*k.T_temp/k.P_press)}`)]};case'n_mol':{const d=R*k.T_temp;if(d===0)throw Error('T=0');return{value:k.P_press*k.V_vol/d,steps:[mkStep('Result',`n = ${fmt(k.P_press*k.V_vol/d)}`)]}};case'T_temp':{const d=k.n_mol*R;if(d===0)throw Error('n=0');return{value:k.P_press*k.V_vol/d,steps:[mkStep('Result',`T = ${fmt(k.P_press*k.V_vol/d)}`)]}}}}},
+];
+
+// ============================================================
+// SYMBOLIC POLYNOMIAL ENGINE (for Algebra & Calculus)
+// ============================================================
+// Represent polynomials as arrays: [c0, c1, c2, ...] = c0 + c1*x + c2*x² + ...
+// Also support basic expression trees for trig/exp/log
+
+// Parse a polynomial string like "3x^2 + 5x - 7" or "x^3 + 5*x^2 - 2*x + 7"
+function parsePoly(str, varName) {
+  varName = varName || 'x';
+  // Normalize
+  let s = str.replace(/\s+/g,'').replace(/−/g,'-').replace(/\*\*/g,'^');
+  // Replace x² → x^2 etc
+  s = s.replace(new RegExp(varName+'²','g'),varName+'^2')
+       .replace(new RegExp(varName+'³','g'),varName+'^3');
+
+  const coeffs = {};
+  // Split by + or - while keeping sign
+  const terms = [];
+  let buf = '';
+  for (let i = 0; i < s.length; i++) {
+    if (i > 0 && (s[i] === '+' || s[i] === '-') && s[i-1] !== '^' && s[i-1] !== 'e' && s[i-1] !== 'E') {
+      terms.push(buf);
+      buf = s[i] === '-' ? '-' : '';
+    } else {
+      buf += s[i];
+    }
+  }
+  if (buf) terms.push(buf);
+
+  const vr = varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const reVarPow = new RegExp('^([\\d.+-]*)\\*?' + vr + '(?:\\^(\\d+))?$');
+  const reVarOnly = new RegExp('^' + vr + '$');
+  const reConst = /^[+-]?[\d.]+$/;
+
+  for (const term of terms) {
+    if (!term || term === '+') continue;
+    if (reConst.test(term)) {
+      coeffs[0] = (coeffs[0] || 0) + parseFloat(term);
+    } else if (reVarOnly.test(term)) {
+      coeffs[1] = (coeffs[1] || 0) + 1;
+    } else {
+      const m = term.match(reVarPow);
+      if (m) {
+        let coeff = m[1];
+        if (coeff === '' || coeff === '+') coeff = '1';
+        else if (coeff === '-') coeff = '-1';
+        const pow = m[2] ? parseInt(m[2]) : 1;
+        coeffs[pow] = (coeffs[pow] || 0) + parseFloat(coeff);
+      } else {
+        throw Error('Cannot parse term: ' + term);
+      }
+    }
+  }
+
+  // Convert to array
+  let maxPow = 0;
+  for (const k in coeffs) if (parseInt(k) > maxPow) maxPow = parseInt(k);
+  const arr = new Array(maxPow + 1).fill(0);
+  for (const k in coeffs) arr[parseInt(k)] = coeffs[k];
+  return arr;
+}
+
+function polyToStr(arr, varName) {
+  varName = varName || 'x';
+  if (arr.length === 0) return '0';
+  const parts = [];
+  for (let i = arr.length - 1; i >= 0; i--) {
+    let c = arr[i];
+    if (Math.abs(c) < 1e-12) continue;
+    let s = '';
+    if (i === 0) {
+      s = fmt(c);
+    } else if (i === 1) {
+      if (Math.abs(c - 1) < 1e-12) s = varName;
+      else if (Math.abs(c + 1) < 1e-12) s = '-' + varName;
+      else s = fmt(c) + varName;
+    } else {
+      if (Math.abs(c - 1) < 1e-12) s = varName + (i === 2 ? '²' : i === 3 ? '³' : '^' + i);
+      else if (Math.abs(c + 1) < 1e-12) s = '-' + varName + (i === 2 ? '²' : i === 3 ? '³' : '^' + i);
+      else s = fmt(c) + varName + (i === 2 ? '²' : i === 3 ? '³' : '^' + i);
+    }
+    parts.push(s);
+  }
+  if (parts.length === 0) return '0';
+  let result = parts[0];
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i].startsWith('-')) result += ' − ' + parts[i].substring(1);
+    else result += ' + ' + parts[i];
+  }
+  return result;
+}
+
+function polyDerivative(arr) {
+  if (arr.length <= 1) return [0];
+  const d = [];
+  for (let i = 1; i < arr.length; i++) d.push(arr[i] * i);
+  return d.length ? d : [0];
+}
+
+function polyIntegral(arr) {
+  const r = [0]; // constant = 0, user adds +C
+  for (let i = 0; i < arr.length; i++) r.push(arr[i] / (i + 1));
+  return r;
+}
+
+function polyEval(arr, x) {
+  let r = 0;
+  for (let i = arr.length - 1; i >= 0; i--) r = r * x + arr[i];
+  return r;
+}
+
+function polyAdd(a, b) {
+  const r = new Array(Math.max(a.length, b.length)).fill(0);
+  for (let i = 0; i < a.length; i++) r[i] += a[i];
+  for (let i = 0; i < b.length; i++) r[i] += b[i];
+  return r;
+}
+
+function polyMul(a, b) {
+  const r = new Array(a.length + b.length - 1).fill(0);
+  for (let i = 0; i < a.length; i++)
+    for (let j = 0; j < b.length; j++)
+      r[i + j] += a[i] * b[j];
+  return r;
+}
+
+// ============================================================
+// ALGEBRA ENGINE
+// ============================================================
+function solveLinear(a, b, c) {
+  // ax + b = c => x = (c-b)/a
+  if (a === 0) throw Error('Not a linear equation (coefficient of x is 0)');
+  const x = (c - b) / a;
+  return {
+    result: x,
+    steps: [
+      `${fmt(a)}x + ${fmt(b)} = ${fmt(c)}`,
+      `${fmt(a)}x = ${fmt(c)} − ${fmt(b)}`,
+      `${fmt(a)}x = ${fmt(c - b)}`,
+      `x = ${fmt(c - b)} / ${fmt(a)}`,
+      `x = ${fmt(x)}`
+    ]
+  };
+}
+
+function solveQuadratic(a, b, c) {
+  if (a === 0) throw Error('Not quadratic (a=0)');
+  const disc = b * b - 4 * a * c;
+  const steps = [
+    `${fmt(a)}x² + ${fmt(b)}x + ${fmt(c)} = 0`,
+    `Discriminant: Δ = b² − 4ac = ${fmt(b)}² − 4(${fmt(a)})(${fmt(c)}) = ${fmt(disc)}`
+  ];
+
+  if (disc > 0) {
+    const x1 = (-b + Math.sqrt(disc)) / (2 * a);
+    const x2 = (-b - Math.sqrt(disc)) / (2 * a);
+    steps.push(`Δ > 0: Two real roots`);
+    steps.push(`x₁ = (−${fmt(b)} + √${fmt(disc)}) / (2×${fmt(a)}) = ${fmt(x1)}`);
+    steps.push(`x₂ = (−${fmt(b)} − √${fmt(disc)}) / (2×${fmt(a)}) = ${fmt(x2)}`);
+    return { roots: [x1, x2], discriminant: disc, type: 'Two distinct real roots', steps };
+  } else if (disc === 0) {
+    const x1 = -b / (2 * a);
+    steps.push(`Δ = 0: One repeated real root`);
+    steps.push(`x = −${fmt(b)} / (2×${fmt(a)}) = ${fmt(x1)}`);
+    return { roots: [x1], discriminant: disc, type: 'One repeated real root', steps };
+  } else {
+    const real = -b / (2 * a);
+    const imag = Math.sqrt(-disc) / (2 * a);
+    steps.push(`Δ < 0: Two complex roots`);
+    steps.push(`x = ${fmt(real)} ± ${fmt(imag)}i`);
+    return { roots: [], complexRoots: [{ re: real, im: imag }, { re: real, im: -imag }], discriminant: disc, type: 'Two complex conjugate roots', steps };
+  }
+}
+
+function solveSystem2(a1,b1,c1,a2,b2,c2){
+  // a1*x + b1*y = c1, a2*x + b2*y = c2
+  const det=a1*b2-a2*b1;
+  if(Math.abs(det)<1e-14)throw Error('System has no unique solution (det=0)');
+  const x=(c1*b2-c2*b1)/det;
+  const y=(a1*c2-a2*c1)/det;
+  return{x,y,steps:[
+    `${fmt(a1)}x + ${fmt(b1)}y = ${fmt(c1)}`,
+    `${fmt(a2)}x + ${fmt(b2)}y = ${fmt(c2)}`,
+    `det = ${fmt(a1)}×${fmt(b2)} − ${fmt(a2)}×${fmt(b1)} = ${fmt(det)}`,
+    `x = (${fmt(c1)}×${fmt(b2)} − ${fmt(c2)}×${fmt(b1)}) / ${fmt(det)} = ${fmt(x)}`,
+    `y = (${fmt(a1)}×${fmt(c2)} − ${fmt(a2)}×${fmt(c1)}) / ${fmt(det)} = ${fmt(y)}`
+  ]};
+}
+
+function solveSystem3(m,rhs){
+  // 3x3 Cramer's rule
+  function det3(m){return m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0])}
+  const D=det3(m);
+  if(Math.abs(D)<1e-14)throw Error('No unique solution (det=0)');
+  function replCol(mat,col,vals){const r=mat.map(row=>[...row]);for(let i=0;i<3;i++)r[i][col]=vals[i];return r}
+  const x=det3(replCol(m,0,rhs))/D;
+  const y=det3(replCol(m,1,rhs))/D;
+  const z=det3(replCol(m,2,rhs))/D;
+  return{x,y,z,steps:[`det = ${fmt(D)}`,`x = ${fmt(x)}`,`y = ${fmt(y)}`,`z = ${fmt(z)}`]};
+}
+
+function factorQuadratic(a, b, c) {
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) throw Error('Cannot factor over reals (Δ < 0)');
+  const x1 = (-b + Math.sqrt(disc)) / (2 * a);
+  const x2 = (-b - Math.sqrt(disc)) / (2 * a);
+  let result;
+  if (a === 1) {
+    result = `(x − ${fmt(x1)})(x − ${fmt(x2)})`;
+  } else {
+    result = `${fmt(a)}(x − ${fmt(x1)})(x − ${fmt(x2)})`;
+  }
+  return { result, roots: [x1, x2], steps: [`Roots: x = ${fmt(x1)}, ${fmt(x2)}`, `Factored: ${result}`] };
+}
+
+// ============================================================
+// CALCULUS ENGINE
+// ============================================================
+
+// Recognize common functions for differentiation
+// We'll parse expressions into a simple AST and diff symbolically for polynomials,
+// and use the symbolic poly engine plus known function derivatives.
+
+// For the calculus engine, we support:
+// - Polynomials: full symbolic derivative/integral
+// - sin(x), cos(x), tan(x), exp(x), ln(x): known derivatives
+// - For complex compositions: numerical derivative as fallback
+
+// Symbolic diff for known functions
+function symbolicDiff(exprStr, varName) {
+  varName = varName || 'x';
+  const s = exprStr.trim().replace(/\s+/g, '');
+
+  // Try polynomial first
+  try {
+    const poly = parsePoly(s, varName);
+    const dp = polyDerivative(poly);
+    return { result: polyToStr(dp, varName), steps: [`f(${varName}) = ${polyToStr(poly, varName)}`, `f'(${varName}) = ${polyToStr(dp, varName)}`], type: 'polynomial' };
+  } catch (e) {
+    // Not a pure polynomial, try known forms
+  }
+
+  // Known derivatives
+  const knownDerivatives = [
+    { re: new RegExp(`^sin\\(${varName}\\)$`), d: `cos(${varName})`, desc: 'd/d' + varName + ' sin(' + varName + ') = cos(' + varName + ')' },
+    { re: new RegExp(`^cos\\(${varName}\\)$`), d: `-sin(${varName})`, desc: 'd/d' + varName + ' cos(' + varName + ') = -sin(' + varName + ')' },
+    { re: new RegExp(`^tan\\(${varName}\\)$`), d: `1/cos(${varName})²`, desc: 'd/d' + varName + ' tan(' + varName + ') = sec²(' + varName + ')' },
+    { re: new RegExp(`^exp\\(${varName}\\)$`), d: `exp(${varName})`, desc: 'd/d' + varName + ' exp(' + varName + ') = exp(' + varName + ')' },
+    { re: new RegExp(`^e\\^${varName}$`), d: `e^${varName}`, desc: 'd/d' + varName + ' e^' + varName + ' = e^' + varName },
+    { re: new RegExp(`^ln\\(${varName}\\)$`), d: `1/${varName}`, desc: 'd/d' + varName + ' ln(' + varName + ') = 1/' + varName },
+    { re: new RegExp(`^log\\(${varName}\\)$`), d: `1/(${varName}·ln(10))`, desc: 'd/d' + varName + ' log(' + varName + ') = 1/(' + varName + '·ln10)' },
+    { re: new RegExp(`^sqrt\\(${varName}\\)$`), d: `1/(2·√(${varName}))`, desc: 'd/d' + varName + ' √' + varName + ' = 1/(2√' + varName + ')' },
+    { re: new RegExp(`^${varName}$`), d: '1', desc: `d/d${varName} ${varName} = 1` },
+  ];
+
+  for (const kd of knownDerivatives) {
+    if (kd.re.test(s)) {
+      return { result: kd.d, steps: [kd.desc], type: 'known' };
+    }
+  }
+
+  // Try: a*f(x) form
+  const mConst = s.match(new RegExp(`^([\\d.]+)\\*?(.+)$`));
+  if (mConst) {
+    const coeff = parseFloat(mConst[1]);
+    const inner = mConst[2];
+    try {
+      const innerD = symbolicDiff(inner, varName);
+      return {
+        result: fmt(coeff) + '·(' + innerD.result + ')',
+        steps: [`${fmt(coeff)} · d/d${varName}[${inner}]`, ...innerD.steps.map(s => '  ' + s), `= ${fmt(coeff)}·(${innerD.result})`],
+        type: 'scaled'
+      };
+    } catch (e) {}
+  }
+
+  throw Error('Cannot differentiate this expression symbolically. Supported: polynomials, sin, cos, tan, exp, ln, log, sqrt, and their scalar multiples.');
+}
+
+function symbolicIntegral(exprStr, varName) {
+  varName = varName || 'x';
+  const s = exprStr.trim().replace(/\s+/g, '');
+
+  // Try polynomial
+  try {
+    const poly = parsePoly(s, varName);
+    const ip = polyIntegral(poly);
+    return { result: polyToStr(ip, varName) + ' + C', steps: [`f(${varName}) = ${polyToStr(poly, varName)}`, `∫f(${varName})d${varName} = ${polyToStr(ip, varName)} + C`], type: 'polynomial', poly: ip };
+  } catch (e) {}
+
+  const known = [
+    { re: new RegExp(`^sin\\(${varName}\\)$`), i: `-cos(${varName}) + C` },
+    { re: new RegExp(`^cos\\(${varName}\\)$`), i: `sin(${varName}) + C` },
+    { re: new RegExp(`^exp\\(${varName}\\)$`), i: `exp(${varName}) + C` },
+    { re: new RegExp(`^e\\^${varName}$`), i: `e^${varName} + C` },
+    { re: new RegExp(`^1/${varName}$`), i: `ln|${varName}| + C` },
+    { re: new RegExp(`^${varName}$`), i: `${varName}²/2 + C` },
+  ];
+  for (const ki of known) {
+    if (ki.re.test(s)) return { result: ki.i, steps: [`∫${s} d${varName} = ${ki.i}`], type: 'known' };
+  }
+
+  throw Error('Cannot integrate this expression symbolically. Supported: polynomials, sin, cos, exp, 1/x.');
+}
+
+function definiteIntegral(exprStr, varName, a, b) {
+  // Try symbolic first
+  try {
+    const indef = symbolicIntegral(exprStr, varName);
+    if (indef.type === 'polynomial' && indef.poly) {
+      const Fb = polyEval(indef.poly, b);
+      const Fa = polyEval(indef.poly, a);
+      return {
+        result: Fb - Fa,
+        steps: [...indef.steps,
+          `F(${fmt(b)}) = ${fmt(Fb)}`,
+          `F(${fmt(a)}) = ${fmt(Fa)}`,
+          `∫ = F(b) − F(a) = ${fmt(Fb - Fa)}`
+        ]
+      };
+    }
+  } catch (e) {}
+
+  // Numerical integration (Simpson's rule)
+  const n = 1000;
+  const h = (b - a) / n;
+  let sum = 0;
+  for (let i = 0; i <= n; i++) {
+    const xi = a + i * h;
+    let coeff = 1;
+    if (i === 0 || i === n) coeff = 1;
+    else if (i % 2 === 1) coeff = 4;
+    else coeff = 2;
+    try {
+      // Evaluate expression at xi by substitution
+      const val = evalExprAt(exprStr, varName, xi);
+      sum += coeff * val;
+    } catch (e) {
+      throw Error('Cannot evaluate expression at ' + varName + ' = ' + xi);
+    }
+  }
+  const result = sum * h / 3;
+  return {
+    result,
+    steps: [`Numerical integration (Simpson's rule, n=${n})`, `∫₍${fmt(a)}₎₍${fmt(b)}₎ ≈ ${fmt(result)}`]
+  };
+}
+
+function evalExprAt(exprStr, varName, val) {
+  // Replace variable with value and evaluate using our safe parser
+  const substituted = exprStr.replace(new RegExp(varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '(' + val + ')');
+  return evaluate(substituted);
+}
+
+function computeLimit(exprStr, varName, point) {
+  // Numerical approach from both sides
+  const eps = [1e-2, 1e-4, 1e-6, 1e-8, 1e-10];
+  const left = [], right = [];
+  for (const e of eps) {
+    try { left.push(evalExprAt(exprStr, varName, point - e)); } catch (er) { left.push(NaN); }
+    try { right.push(evalExprAt(exprStr, varName, point + e)); } catch (er) { right.push(NaN); }
+  }
+
+  const lVal = left[left.length - 1];
+  const rVal = right[right.length - 1];
+  const steps = [`Approach from left: ${left.map(v => fmt(v)).join(' → ')}`, `Approach from right: ${right.map(v => fmt(v)).join(' → ')}`];
+
+  if (isNaN(lVal) && isNaN(rVal)) throw Error('Limit does not exist (undefined from both sides)');
+  if (isNaN(lVal)) return { result: rVal, steps: [...steps, 'Left limit undefined', `Right limit = ${fmt(rVal)}`] };
+  if (isNaN(rVal)) return { result: lVal, steps: [...steps, `Left limit = ${fmt(lVal)}`, 'Right limit undefined'] };
+
+  if (Math.abs(lVal - rVal) < 1e-4) {
+    const avg = (lVal + rVal) / 2;
+    steps.push(`Limit = ${fmt(avg)}`);
+    return { result: avg, steps };
+  }
+  steps.push(`Left ≠ Right: limit may not exist`);
+  return { result: NaN, steps };
+}
+
+function taylorSeries(exprStr, varName, center, nTerms) {
+  center = center || 0;
+  nTerms = nTerms || 5;
+  const coeffs = [];
+  let fac = 1;
+  for (let n = 0; n < nTerms; n++) {
+    if (n > 0) fac *= n;
+    // n-th derivative at center via numerical differentiation
+    const h = 1e-5;
+    let val;
+    if (n === 0) {
+      val = evalExprAt(exprStr, varName, center);
+    } else {
+      // Use finite differences for n-th derivative
+      val = nthDerivativeNumerical(exprStr, varName, center, n);
+    }
+    coeffs.push(val / fac);
+  }
+
+  // Format
+  const parts = [];
+  for (let i = 0; i < coeffs.length; i++) {
+    if (Math.abs(coeffs[i]) < 1e-12) continue;
+    let term;
+    if (i === 0) term = fmt(coeffs[i]);
+    else if (center === 0) {
+      if (i === 1) term = fmt(coeffs[i]) + varName;
+      else term = fmt(coeffs[i]) + varName + (i === 2 ? '²' : '^' + i);
+    } else {
+      if (i === 1) term = fmt(coeffs[i]) + `(${varName}−${fmt(center)})`;
+      else term = fmt(coeffs[i]) + `(${varName}−${fmt(center)})` + (i === 2 ? '²' : '^' + i);
+    }
+    parts.push(term);
+  }
+
+  return {
+    result: parts.join(' + ').replace(/\+ -/g, '− ') || '0',
+    steps: [`Taylor series around ${varName} = ${fmt(center)}, ${nTerms} terms`, ...coeffs.map((c, i) => `a${i} = ${fmt(c)}`)],
+    coeffs
+  };
+}
+
+function nthDerivativeNumerical(exprStr, varName, x, n) {
+  const h = 1e-4;
+  if (n === 0) return evalExprAt(exprStr, varName, x);
+  if (n === 1) return (evalExprAt(exprStr, varName, x + h) - evalExprAt(exprStr, varName, x - h)) / (2 * h);
+  // Central difference recursion
+  return (nthDerivativeNumerical(exprStr, varName, x + h, n - 1) - nthDerivativeNumerical(exprStr, varName, x - h, n - 1)) / (2 * h);
+}
+
+// ============================================================
+// MATRIX ENGINE
+// ============================================================
+function matCreate(rows, cols, vals) {
+  const m = [];
+  for (let i = 0; i < rows; i++) {
+    m.push([]);
+    for (let j = 0; j < cols; j++) {
+      m[i].push(vals ? (vals[i * cols + j] || 0) : 0);
+    }
+  }
+  return m;
+}
+
+function matToStr(m) {
+  return m.map(r => '[ ' + r.map(v => fmt(v)).join('  ') + ' ]').join('\n');
+}
+
+function matAdd(a, b) {
+  if (a.length !== b.length || a[0].length !== b[0].length) throw Error('Matrix dimensions must match');
+  return a.map((r, i) => r.map((v, j) => v + b[i][j]));
+}
+
+function matSub(a, b) {
+  if (a.length !== b.length || a[0].length !== b[0].length) throw Error('Matrix dimensions must match');
+  return a.map((r, i) => r.map((v, j) => v - b[i][j]));
+}
+
+function matMul(a, b) {
+  if (a[0].length !== b.length) throw Error(`Cannot multiply: A cols (${a[0].length}) ≠ B rows (${b.length})`);
+  const r = a.length, c = b[0].length, n = a[0].length;
+  const res = matCreate(r, c);
+  for (let i = 0; i < r; i++)
+    for (let j = 0; j < c; j++)
+      for (let k = 0; k < n; k++)
+        res[i][j] += a[i][k] * b[k][j];
+  return res;
+}
+
+function matScalar(m, s) { return m.map(r => r.map(v => v * s)); }
+function matTranspose(m) { return m[0].map((_, j) => m.map(r => r[j])); }
+function matTrace(m) { if (m.length !== m[0].length) throw Error('Trace requires square matrix'); let s = 0; for (let i = 0; i < m.length; i++) s += m[i][i]; return s; }
+
+function matDet(m) {
+  const n = m.length;
+  if (n !== m[0].length) throw Error('Determinant requires square matrix');
+  if (n === 1) return m[0][0];
+  if (n === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+  let det = 0;
+  for (let j = 0; j < n; j++) {
+    const minor = m.slice(1).map(r => [...r.slice(0, j), ...r.slice(j + 1)]);
+    det += (j % 2 === 0 ? 1 : -1) * m[0][j] * matDet(minor);
+  }
+  return det;
+}
+
+function matInverse(m) {
+  const n = m.length;
+  if (n !== m[0].length) throw Error('Inverse requires square matrix');
+  const det = matDet(m);
+  if (Math.abs(det) < 1e-14) throw Error('Matrix is singular (det = 0), inverse does not exist');
+
+  if (n === 2) {
+    return matScalar([[m[1][1], -m[0][1]], [-m[1][0], m[0][0]]], 1 / det);
+  }
+
+  // General: augment with identity and row reduce
+  const aug = m.map((r, i) => {
+    const row = [...r];
+    for (let j = 0; j < n; j++) row.push(i === j ? 1 : 0);
+    return row;
+  });
+
+  for (let col = 0; col < n; col++) {
+    let maxRow = col;
+    for (let row = col + 1; row < n; row++) {
+      if (Math.abs(aug[row][col]) > Math.abs(aug[maxRow][col])) maxRow = row;
+    }
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    const pivot = aug[col][col];
+    if (Math.abs(pivot) < 1e-14) throw Error('Singular matrix');
+    for (let j = 0; j < 2 * n; j++) aug[col][j] /= pivot;
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const factor = aug[row][col];
+      for (let j = 0; j < 2 * n; j++) aug[row][j] -= factor * aug[col][j];
+    }
+  }
+
+  return aug.map(r => r.slice(n));
+}
+
+function matRank(m) {
+  const rows = m.length, cols = m[0].length;
+  const a = m.map(r => [...r]);
+  let rank = 0;
+  for (let col = 0; col < cols && rank < rows; col++) {
+    let maxRow = rank;
+    for (let row = rank + 1; row < rows; row++) {
+      if (Math.abs(a[row][col]) > Math.abs(a[maxRow][col])) maxRow = row;
+    }
+    if (Math.abs(a[maxRow][col]) < 1e-14) continue;
+    [a[rank], a[maxRow]] = [a[maxRow], a[rank]];
+    const pivot = a[rank][col];
+    for (let j = col; j < cols; j++) a[rank][j] /= pivot;
+    for (let row = 0; row < rows; row++) {
+      if (row === rank) continue;
+      const factor = a[row][col];
+      for (let j = col; j < cols; j++) a[row][j] -= factor * a[rank][j];
+    }
+    rank++;
+  }
+  return rank;
+}
+
+function matRREF(m) {
+  const rows = m.length, cols = m[0].length;
+  const a = m.map(r => [...r]);
+  let lead = 0;
+  for (let r = 0; r < rows && lead < cols; r++) {
+    let maxRow = r;
+    for (let i = r + 1; i < rows; i++) if (Math.abs(a[i][lead]) > Math.abs(a[maxRow][lead])) maxRow = i;
+    if (Math.abs(a[maxRow][lead]) < 1e-14) { lead++; r--; continue; }
+    [a[r], a[maxRow]] = [a[maxRow], a[r]];
+    const pivot = a[r][lead];
+    for (let j = 0; j < cols; j++) a[r][j] /= pivot;
+    for (let i = 0; i < rows; i++) {
+      if (i === r) continue;
+      const factor = a[i][lead];
+      for (let j = 0; j < cols; j++) a[i][j] -= factor * a[r][j];
+    }
+    lead++;
+  }
+  return a;
+}
+
+function matEigen2x2(m) {
+  if (m.length !== 2 || m[0].length !== 2) throw Error('Eigenvalues only for 2×2');
+  const a = m[0][0], b = m[0][1], c = m[1][0], d = m[1][1];
+  const trace = a + d;
+  const det = a * d - b * c;
+  const disc = trace * trace - 4 * det;
+  if (disc < 0) {
+    const re = trace / 2, im = Math.sqrt(-disc) / 2;
+    return { eigenvalues: [], complex: [{ re, im }, { re, im: -im }], steps: [`trace = ${fmt(trace)}`, `det = ${fmt(det)}`, `Δ = ${fmt(disc)} < 0`, `λ = ${fmt(re)} ± ${fmt(im)}i`] };
+  }
+  const l1 = (trace + Math.sqrt(disc)) / 2;
+  const l2 = (trace - Math.sqrt(disc)) / 2;
+  return { eigenvalues: [l1, l2], steps: [`trace = ${fmt(trace)}`, `det = ${fmt(det)}`, `λ₁ = ${fmt(l1)}`, `λ₂ = ${fmt(l2)}`] };
+}
+
+// ============================================================
+// STATISTICS ENGINE
+// ============================================================
+function statDescriptive(data, isSample) {
+  const n = data.length;
+  if (n === 0) throw Error('No data');
+  const sorted = [...data].sort((a, b) => a - b);
+  const sum = data.reduce((a, b) => a + b, 0);
+  const mean = sum / n;
+  const median = n % 2 === 1 ? sorted[Math.floor(n / 2)] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+
+  // Mode
+  const freq = {};
+  data.forEach(v => { freq[v] = (freq[v] || 0) + 1; });
+  let maxFreq = 0;
+  Object.values(freq).forEach(f => { if (f > maxFreq) maxFreq = f; });
+  const modes = Object.keys(freq).filter(k => freq[k] === maxFreq).map(Number);
+  const mode = maxFreq === 1 ? 'No mode' : modes.join(', ');
+
+  const min = sorted[0], max = sorted[n - 1], range = max - min;
+  const ssq = data.reduce((a, v) => a + (v - mean) * (v - mean), 0);
+  const variance = isSample ? ssq / (n - 1) : ssq / n;
+  const stddev = Math.sqrt(variance);
+
+  // Quartiles
+  function quartile(arr, q) {
+    const pos = (arr.length - 1) * q;
+    const lo = Math.floor(pos), hi = Math.ceil(pos);
+    if (lo === hi) return arr[lo];
+    return arr[lo] * (hi - pos) + arr[hi] * (pos - lo);
+  }
+  const q1 = quartile(sorted, 0.25);
+  const q3 = quartile(sorted, 0.75);
+  const iqr = q3 - q1;
+
+  return {
+    n, sum, mean, median, mode, min, max, range, variance, stddev, q1, q3, iqr,
+    type: isSample ? 'Sample' : 'Population'
+  };
+}
+
+function linearRegression(xData, yData) {
+  const n = xData.length;
+  if (n !== yData.length || n < 2) throw Error('x and y must have same length ≥ 2');
+  const sumX = xData.reduce((a, b) => a + b, 0);
+  const sumY = yData.reduce((a, b) => a + b, 0);
+  const sumXY = xData.reduce((a, v, i) => a + v * yData[i], 0);
+  const sumX2 = xData.reduce((a, v) => a + v * v, 0);
+  const sumY2 = yData.reduce((a, v) => a + v * v, 0);
+
+  const denom = n * sumX2 - sumX * sumX;
+  if (Math.abs(denom) < 1e-14) throw Error('Cannot compute regression (vertical data)');
+
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  const r = (n * sumXY - sumX * sumY) / Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+  const r2 = r * r;
+
+  return { slope, intercept, r, r2, equation: `y = ${fmt(slope)}x + ${fmt(intercept)}` };
+}
+
+function permutation(n, r) {
+  if (n < 0 || r < 0 || r > n) throw Error('Invalid n,r for permutation');
+  return fact(n) / fact(n - r);
+}
+function combination(n, r) {
+  if (n < 0 || r < 0 || r > n) throw Error('Invalid n,r for combination');
+  return fact(n) / (fact(r) * fact(n - r));
+}
+function binomialProb(n, k, p) {
+  if (k > n || k < 0 || p < 0 || p > 1) throw Error('Invalid binomial parameters');
+  return combination(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function addHist(entry){hist.push(entry);saveH();renderAllHistory();renderCalcHist()}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function initNav(){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const pg=document.getElementById('page-'+t.dataset.page);if(pg)pg.classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(b=>{b.classList.toggle('active',b===t);b.setAttribute('aria-selected',b===t?'true':'false')});
+  }));
+  document.querySelector('.nav-settings').addEventListener('click',()=>{
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-settings').classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false')});
+  });
+  // Sub-nav
+  document.getElementById('calc-sub-nav').addEventListener('click',e=>{
+    const btn=e.target.closest('.sub-tab');if(!btn)return;
+    document.querySelectorAll('#calc-sub-nav .sub-tab').forEach(b=>b.classList.toggle('active',b===btn));
+    document.querySelectorAll('#page-calculator .sub-page').forEach(p=>p.classList.toggle('active',p.id==='sub-'+btn.dataset.sub));
+  });
+}
+
+// ============================================================
+// SCIENTIFIC CALCULATOR UI
+// ============================================================
+function initScientific(){
+  const exprEl=document.getElementById('calc-expr'), resEl=document.getElementById('calc-result');
+  function updateDisp(){
+    exprEl.textContent=calcExpr||'';
+    if(calcExpr.trim()){try{const r=evaluate(calcExpr);resEl.textContent=fmt(r);resEl.className='calc-result'}catch(e){resEl.textContent=calcExpr?'':'0';resEl.className='calc-result'}}
+    else{resEl.textContent='0';resEl.className='calc-result'}
+  }
+  function append(ch){calcExpr+=ch;updateDisp()}
+  function doCalc(){
+    if(!calcExpr.trim())return;
+    try{const r=evaluate(calcExpr);const f=fmt(r);addHist({type:'calculator',expression:calcExpr,result:f,resultValue:r,timestamp:Date.now()});
+      lastAns=r;exprEl.textContent=calcExpr+' =';resEl.textContent=f;resEl.className='calc-result';calcExpr=String(r);renderCalcHist()
+    }catch(e){resEl.textContent=e.message||'Error';resEl.className='calc-result error'}
+  }
+
+  document.getElementById('calc-buttons').addEventListener('click',ev=>{
+    const btn=ev.target.closest('.calc-btn');if(!btn)return;
+    if(btn.dataset.input!==undefined)append(btn.dataset.input);
+    else if(btn.dataset.fn){
+      const fn=btn.dataset.fn;
+      switch(fn){
+        case'sin':append(isInv?'asin(':'sin(');break;case'cos':append(isInv?'acos(':'cos(');break;
+        case'tan':append(isInv?'atan(':'tan(');break;case'sinh':append(isInv?'asinh(':'sinh(');break;
+        case'cosh':append(isInv?'acosh(':'cosh(');break;case'tanh':append(isInv?'atanh(':'tanh(');break;
+        case'log':append('log(');break;case'ln':append('ln(');break;case'sqrt':append('√(');break;
+        case'cbrt':append('cbrt(');break;case'abs':append('abs(');break;case'exp':append('exp(');break;
+        case'fact':append('!');break;case'recip':calcExpr='1/('+calcExpr+')';updateDisp();break;
+        case'pow':append('^');break;
+      }
+    }else if(btn.dataset.const){if(btn.dataset.const==='pi')append('π');else if(btn.dataset.const==='e')append('e')}
+    else if(btn.dataset.action){
+      switch(btn.dataset.action){case'clear':calcExpr='';updateDisp();break;case'backspace':calcExpr=calcExpr.slice(0,-1);updateDisp();break;
+      case'calculate':doCalc();break;case'ans':append(String(lastAns));break;}
+    }
+  });
+
+  // Memory
+  document.querySelectorAll('[data-mem]').forEach(btn=>btn.addEventListener('click',()=>{
+    switch(btn.dataset.mem){case'MC':memory=0;saveM();break;case'MR':append(String(memory));break;
+    case'M+':try{memory+=evaluate(calcExpr);saveM()}catch(e){}break;
+    case'M-':try{memory-=evaluate(calcExpr);saveM()}catch(e){}break;
+    case'MS':try{memory=evaluate(calcExpr);saveM()}catch(e){}break;}
+  }));
+
+  // Angle mode
+  document.querySelectorAll('[data-angle]').forEach(btn=>btn.addEventListener('click',()=>{
+    S.angleMode=btn.dataset.angle;saveS();
+    document.querySelectorAll('[data-angle]').forEach(b=>b.classList.toggle('active',b.dataset.angle===S.angleMode));
+    document.getElementById('setting-angle').value=S.angleMode;updateDisp();
+  }));
+
+  // INV
+  document.getElementById('btn-inv').addEventListener('click',function(){
+    isInv=!isInv;this.classList.toggle('active',isInv);
+    const labels={sin:['sin','sin⁻¹'],cos:['cos','cos⁻¹'],tan:['tan','tan⁻¹'],sinh:['sinh','sinh⁻¹'],cosh:['cosh','cosh⁻¹'],tanh:['tanh','tanh⁻¹']};
+    for(const[fn,[norm,inv]]of Object.entries(labels)){const b=document.querySelector(`[data-fn="${fn}"]`);if(b)b.textContent=isInv?inv:norm}
+  });
+
+  // Keyboard
+  document.addEventListener('keydown',ev=>{
+    if(!document.getElementById('page-calculator').classList.contains('active'))return;
+    if(!document.getElementById('sub-scientific').classList.contains('active'))return;
+    if(ev.target.tagName==='INPUT'||ev.target.tagName==='SELECT'||ev.target.tagName==='TEXTAREA')return;
+    const k=ev.key;
+    if(k>='0'&&k<='9'){append(k);ev.preventDefault()}
+    else if(k==='.'){append('.');ev.preventDefault()}
+    else if(k==='+'){append('+');ev.preventDefault()}
+    else if(k==='-'){append('-');ev.preventDefault()}
+    else if(k==='*'){append('×');ev.preventDefault()}
+    else if(k==='/'){append('÷');ev.preventDefault()}
+    else if(k==='%'){append('%');ev.preventDefault()}
+    else if(k==='^'){append('^');ev.preventDefault()}
+    else if(k==='('){append('(');ev.preventDefault()}
+    else if(k===')'){append(')');ev.preventDefault()}
+    else if(k==='!'){append('!');ev.preventDefault()}
+    else if(k==='Enter'){doCalc();ev.preventDefault()}
+    else if(k==='Backspace'){calcExpr=calcExpr.slice(0,-1);updateDisp();ev.preventDefault()}
+    else if(k==='Escape'){calcExpr='';updateDisp();ev.preventDefault()}
+  });
+
+  document.querySelectorAll('[data-angle]').forEach(b=>b.classList.toggle('active',b.dataset.angle===S.angleMode));
+  updateDisp();
+}
+
+function renderCalcHist(){
+  const list=document.getElementById('calc-history-list');
+  const ch=hist.filter(h=>h.type==='calculator').slice(-20).reverse();
+  if(!ch.length){list.innerHTML='<div class="empty-state"><div class="empty-state-icon">📝</div><p>No calculations yet</p></div>';return}
+  list.innerHTML=ch.map(h=>`<div class="hist-item" data-expr="${esc(String(h.resultValue!==undefined?h.resultValue:h.result))}"><div><div class="hist-expr">${esc(h.expression)}</div><div class="hist-result">= ${esc(h.result)}</div></div></div>`).join('');
+  list.querySelectorAll('.hist-item').forEach(item=>item.addEventListener('click',()=>{
+    calcExpr=item.dataset.expr;document.getElementById('calc-expr').textContent='';document.getElementById('calc-result').textContent=fmt(parseFloat(item.dataset.expr));
+  }));
+}
+
+// ============================================================
+// ALGEBRA UI
+// ============================================================
+function initAlgebra(){
+  const mode=document.getElementById('alg-mode');
+  const inputs=document.getElementById('alg-inputs');
+  const stepsBtn=document.getElementById('alg-show-steps');
+  let lastSteps=null;
+
+  function updateInputs(){
+    lastSteps=null;stepsBtn.style.display='none';
+    document.getElementById('alg-result-card').style.display='none';
+    const m=mode.value;
+    switch(m){
+      case'linear':inputs.innerHTML=`<div class="form-group"><label class="form-label">Equation: ax + b = c</label><div style="display:flex;gap:6px;flex-wrap:wrap"><input type="number" class="form-input" id="alg-a" placeholder="a" step="any" style="width:80px"><span style="line-height:40px">x +</span><input type="number" class="form-input" id="alg-b" placeholder="b" step="any" style="width:80px"><span style="line-height:40px">=</span><input type="number" class="form-input" id="alg-c" placeholder="c" step="any" style="width:80px"></div></div>`;break;
+      case'quadratic':inputs.innerHTML=`<div class="form-group"><label class="form-label">ax² + bx + c = 0</label><div style="display:flex;gap:6px;flex-wrap:wrap"><input type="number" class="form-input" id="alg-a" placeholder="a" step="any" style="width:80px"><span style="line-height:40px">x² +</span><input type="number" class="form-input" id="alg-b" placeholder="b" step="any" style="width:80px"><span style="line-height:40px">x +</span><input type="number" class="form-input" id="alg-c" placeholder="c" step="any" style="width:80px"><span style="line-height:40px">= 0</span></div></div>`;break;
+      case'polynomial':inputs.innerHTML=`<div class="form-group"><label class="form-label">Polynomial (e.g. 3x^2+5x-7)</label><input type="text" class="form-input" id="alg-poly" placeholder="3x^2 + 5x - 7"></div><div class="form-group"><label class="form-label">Evaluate at x =</label><input type="number" class="form-input" id="alg-x" step="any" placeholder="value" style="width:100px"></div>`;break;
+      case'system2':inputs.innerHTML=`<div class="form-group"><label class="form-label">Equation 1: a₁x + b₁y = c₁</label><div style="display:flex;gap:4px;flex-wrap:wrap"><input type="number" class="form-input" id="alg-a1" placeholder="a₁" step="any" style="width:65px"><span style="line-height:40px">x+</span><input type="number" class="form-input" id="alg-b1" placeholder="b₁" step="any" style="width:65px"><span style="line-height:40px">y=</span><input type="number" class="form-input" id="alg-c1" placeholder="c₁" step="any" style="width:65px"></div></div><div class="form-group"><label class="form-label">Equation 2: a₂x + b₂y = c₂</label><div style="display:flex;gap:4px;flex-wrap:wrap"><input type="number" class="form-input" id="alg-a2" placeholder="a₂" step="any" style="width:65px"><span style="line-height:40px">x+</span><input type="number" class="form-input" id="alg-b2" placeholder="b₂" step="any" style="width:65px"><span style="line-height:40px">y=</span><input type="number" class="form-input" id="alg-c2" placeholder="c₂" step="any" style="width:65px"></div></div>`;break;
+      case'system3':inputs.innerHTML=`<div class="form-group"><label class="form-label">3×3 System: Enter coefficients</label><p style="font-size:.78rem;color:var(--text-muted)">Row 1: a₁x + b₁y + c₁z = d₁</p><div style="display:flex;gap:4px;flex-wrap:wrap;margin:4px 0"><input type="number" class="form-input" id="s3-a1" step="any" style="width:55px" placeholder="a₁"><input type="number" class="form-input" id="s3-b1" step="any" style="width:55px" placeholder="b₁"><input type="number" class="form-input" id="s3-c1" step="any" style="width:55px" placeholder="c₁"><span style="line-height:40px">=</span><input type="number" class="form-input" id="s3-d1" step="any" style="width:55px" placeholder="d₁"></div><p style="font-size:.78rem;color:var(--text-muted)">Row 2</p><div style="display:flex;gap:4px;flex-wrap:wrap;margin:4px 0"><input type="number" class="form-input" id="s3-a2" step="any" style="width:55px"><input type="number" class="form-input" id="s3-b2" step="any" style="width:55px"><input type="number" class="form-input" id="s3-c2" step="any" style="width:55px"><span style="line-height:40px">=</span><input type="number" class="form-input" id="s3-d2" step="any" style="width:55px"></div><p style="font-size:.78rem;color:var(--text-muted)">Row 3</p><div style="display:flex;gap:4px;flex-wrap:wrap;margin:4px 0"><input type="number" class="form-input" id="s3-a3" step="any" style="width:55px"><input type="number" class="form-input" id="s3-b3" step="any" style="width:55px"><input type="number" class="form-input" id="s3-c3" step="any" style="width:55px"><span style="line-height:40px">=</span><input type="number" class="form-input" id="s3-d3" step="any" style="width:55px"></div></div>`;break;
+      case'simplify':case'expand':inputs.innerHTML=`<div class="form-group"><label class="form-label">Polynomial expression</label><input type="text" class="form-input" id="alg-poly" placeholder="e.g. 3x^2 + 2x + x^2 - x"></div>`;break;
+      case'factor':inputs.innerHTML=`<div class="form-group"><label class="form-label">Quadratic: ax² + bx + c</label><div style="display:flex;gap:6px;flex-wrap:wrap"><input type="number" class="form-input" id="alg-a" placeholder="a" step="any" style="width:80px"><input type="number" class="form-input" id="alg-b" placeholder="b" step="any" style="width:80px"><input type="number" class="form-input" id="alg-c" placeholder="c" step="any" style="width:80px"></div></div>`;break;
+    }
+  }
+
+  mode.addEventListener('change',updateInputs);
+  updateInputs();
+
+  document.getElementById('alg-calculate').addEventListener('click',()=>{
+    const m=mode.value;const rc=document.getElementById('alg-result-card');const rd=document.getElementById('alg-result');
+    try{
+      let html='';
+      switch(m){
+        case'linear':{
+          const a=parseFloat(document.getElementById('alg-a').value),b=parseFloat(document.getElementById('alg-b').value),c=parseFloat(document.getElementById('alg-c').value);
+          if([a,b,c].some(isNaN))throw Error('Enter all values');
+          const r=solveLinear(a,b,c);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Solution</div><div class="result-answer">x = ${fmt(r.result)}</div></div></div>`;
+          addHist({type:'algebra',expression:`${fmt(a)}x + ${fmt(b)} = ${fmt(c)}`,result:`x = ${fmt(r.result)}`,timestamp:Date.now()});
+          break;
+        }
+        case'quadratic':{
+          const a=parseFloat(document.getElementById('alg-a').value),b=parseFloat(document.getElementById('alg-b').value),c=parseFloat(document.getElementById('alg-c').value);
+          if([a,b,c].some(isNaN))throw Error('Enter all values');
+          const r=solveQuadratic(a,b,c);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">${esc(r.type)}</div><div class="result-answer">${r.roots.length?r.roots.map(v=>'x = '+fmt(v)).join(', '):(r.complexRoots?r.complexRoots.map(c=>`x = ${fmt(c.re)} ${c.im>=0?'+':'−'} ${fmt(Math.abs(c.im))}i`).join(', '):'No real roots')}</div></div><div class="result-section"><div class="result-label">Discriminant</div><div class="result-value">Δ = ${fmt(r.discriminant)}</div></div></div>`;
+          addHist({type:'algebra',expression:`${fmt(a)}x²+${fmt(b)}x+${fmt(c)}=0`,result:r.roots.length?`x = ${r.roots.map(v=>fmt(v)).join(', ')}`:'Complex roots',timestamp:Date.now()});
+          break;
+        }
+        case'polynomial':{
+          const ps=document.getElementById('alg-poly').value;const xv=document.getElementById('alg-x').value;
+          if(!ps)throw Error('Enter polynomial');
+          const poly=parsePoly(ps,'x');
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Parsed</div><div class="result-value">${esc(polyToStr(poly,'x'))}</div></div>`;
+          if(xv!==''){const val=polyEval(poly,parseFloat(xv));html+=`<div class="result-section"><div class="result-label">f(${esc(xv)})</div><div class="result-answer">${fmt(val)}</div></div>`}
+          html+=`</div>`;break;
+        }
+        case'system2':{
+          const v=id=>parseFloat(document.getElementById(id).value);
+          const vals=[v('alg-a1'),v('alg-b1'),v('alg-c1'),v('alg-a2'),v('alg-b2'),v('alg-c2')];
+          if(vals.some(isNaN))throw Error('Enter all values');
+          const r=solveSystem2(...vals);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Solution</div><div class="result-answer">x = ${fmt(r.x)}, y = ${fmt(r.y)}</div></div></div>`;
+          addHist({type:'algebra',expression:'System of 2 equations',result:`x=${fmt(r.x)}, y=${fmt(r.y)}`,timestamp:Date.now()});
+          break;
+        }
+        case'system3':{
+          const v=id=>{const el=document.getElementById(id);return el?parseFloat(el.value):NaN};
+          const mat=[[v('s3-a1'),v('s3-b1'),v('s3-c1')],[v('s3-a2'),v('s3-b2'),v('s3-c2')],[v('s3-a3'),v('s3-b3'),v('s3-c3')]];
+          const rhs=[v('s3-d1'),v('s3-d2'),v('s3-d3')];
+          if([...mat.flat(),...rhs].some(isNaN))throw Error('Enter all values');
+          const r=solveSystem3(mat,rhs);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Solution</div><div class="result-answer">x = ${fmt(r.x)}, y = ${fmt(r.y)}, z = ${fmt(r.z)}</div></div></div>`;
+          addHist({type:'algebra',expression:'System of 3 equations',result:`x=${fmt(r.x)}, y=${fmt(r.y)}, z=${fmt(r.z)}`,timestamp:Date.now()});
+          break;
+        }
+        case'simplify':case'expand':{
+          const ps=document.getElementById('alg-poly').value;if(!ps)throw Error('Enter expression');
+          const poly=parsePoly(ps,'x');
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Result</div><div class="result-answer">${esc(polyToStr(poly,'x'))}</div></div></div>`;break;
+        }
+        case'factor':{
+          const a=parseFloat(document.getElementById('alg-a').value),b=parseFloat(document.getElementById('alg-b').value),c=parseFloat(document.getElementById('alg-c').value);
+          if([a,b,c].some(isNaN))throw Error('Enter all values');
+          const r=factorQuadratic(a,b,c);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Factored Form</div><div class="result-answer">${esc(r.result)}</div></div></div>`;break;
+        }
+      }
+      rd.innerHTML=html;rc.style.display='block';
+      stepsBtn.style.display=lastSteps?'block':'none';
+    }catch(e){rd.innerHTML=`<div class="result-box"><div class="result-value" style="color:var(--text-error)">${esc(e.message)}</div></div>`;rc.style.display='block';stepsBtn.style.display='none'}
+  });
+
+  stepsBtn.addEventListener('click',()=>{
+    if(!lastSteps)return;
+    const rd=document.getElementById('alg-result');
+    rd.innerHTML+=`<div class="result-box" style="margin-top:8px"><div class="result-label">Steps</div>${lastSteps.map(s=>`<div class="result-step">${esc(s)}</div>`).join('')}</div>`;
+    stepsBtn.style.display='none';
+  });
+}
+
+// ============================================================
+// CALCULUS UI
+// ============================================================
+function initCalculus(){
+  const op=document.getElementById('calc-op');
+  const extra=document.getElementById('calc-extra-inputs');
+  const stepsBtn=document.getElementById('calc-show-steps');
+  let lastSteps=null;
+
+  function updateExtra(){
+    lastSteps=null;stepsBtn.style.display='none';document.getElementById('calc-result-card').style.display='none';
+    const m=op.value;
+    switch(m){
+      case'derivative':case'derivative2':extra.innerHTML='';break;
+      case'integral':extra.innerHTML='';break;
+      case'definite':extra.innerHTML=`<div style="display:flex;gap:8px"><div class="form-group"><label class="form-label">From (a)</label><input type="number" class="form-input" id="calc-a" step="any" style="width:80px"></div><div class="form-group"><label class="form-label">To (b)</label><input type="number" class="form-input" id="calc-b" step="any" style="width:80px"></div></div>`;break;
+      case'limit':extra.innerHTML=`<div class="form-group"><label class="form-label">x → (point)</label><input type="number" class="form-input" id="calc-lim-point" step="any" style="width:100px" value="0"></div>`;break;
+      case'taylor':extra.innerHTML=`<div style="display:flex;gap:8px"><div class="form-group"><label class="form-label">Center</label><input type="number" class="form-input" id="calc-taylor-center" step="any" style="width:80px" value="0"></div><div class="form-group"><label class="form-label">Terms</label><input type="number" class="form-input" id="calc-taylor-n" min="1" max="10" style="width:60px" value="5"></div></div>`;break;
+    }
+  }
+  op.addEventListener('change',updateExtra);
+  updateExtra();
+
+  document.getElementById('calc-calculate').addEventListener('click',()=>{
+    const m=op.value;const expr=document.getElementById('calc-expr-input').value.trim();
+    const varN=document.getElementById('calc-var').value.trim()||'x';
+    const rc=document.getElementById('calc-result-card'),rd=document.getElementById('calc-calc-result');
+    if(!expr){rd.innerHTML=`<div class="result-box"><div class="result-value" style="color:var(--text-error)">Enter an expression</div></div>`;rc.style.display='block';return}
+    try{
+      let html='';
+      switch(m){
+        case'derivative':{
+          const r=symbolicDiff(expr,varN);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">d/d${esc(varN)} [${esc(expr)}]</div><div class="result-answer">${esc(r.result)}</div></div></div>`;
+          addHist({type:'calculus',expression:`d/d${varN}(${expr})`,result:r.result,timestamp:Date.now()});break;
+        }
+        case'derivative2':{
+          const r1=symbolicDiff(expr,varN);
+          let r2;try{r2=symbolicDiff(r1.result,varN)}catch(e){r2={result:'(numerical)',steps:[]}}
+          lastSteps=[...r1.steps,'---',...r2.steps];
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">First derivative</div><div class="result-value">${esc(r1.result)}</div></div><div class="result-section"><div class="result-label">Second derivative</div><div class="result-answer">${esc(r2.result)}</div></div></div>`;
+          addHist({type:'calculus',expression:`d²/d${varN}²(${expr})`,result:r2.result,timestamp:Date.now()});break;
+        }
+        case'integral':{
+          const r=symbolicIntegral(expr,varN);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">∫ ${esc(expr)} d${esc(varN)}</div><div class="result-answer">${esc(r.result)}</div></div></div>`;
+          addHist({type:'calculus',expression:`∫(${expr})d${varN}`,result:r.result,timestamp:Date.now()});break;
+        }
+        case'definite':{
+          const a=parseFloat(document.getElementById('calc-a').value),b=parseFloat(document.getElementById('calc-b').value);
+          if(isNaN(a)||isNaN(b))throw Error('Enter limits a and b');
+          const r=definiteIntegral(expr,varN,a,b);lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">∫₍${fmt(a)}₎₍${fmt(b)}₎ ${esc(expr)} d${esc(varN)}</div><div class="result-answer">${fmt(r.result)}</div></div></div>`;
+          addHist({type:'calculus',expression:`∫[${fmt(a)},${fmt(b)}](${expr})d${varN}`,result:fmt(r.result),timestamp:Date.now()});break;
+        }
+        case'limit':{
+          const pt=parseFloat(document.getElementById('calc-lim-point').value);
+          if(isNaN(pt))throw Error('Enter limit point');
+          const r=computeLimit(expr,varN,pt);lastSteps=r.steps;
+          const res=isNaN(r.result)?'Does not exist':fmt(r.result);
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">lim ${esc(varN)}→${fmt(pt)} [${esc(expr)}]</div><div class="result-answer">${esc(res)}</div></div></div>`;
+          addHist({type:'calculus',expression:`lim(${varN}→${fmt(pt)}) ${expr}`,result:res,timestamp:Date.now()});break;
+        }
+        case'taylor':{
+          const center=parseFloat(document.getElementById('calc-taylor-center').value)||0;
+          const nTerms=parseInt(document.getElementById('calc-taylor-n').value)||5;
+          const r=taylorSeries(expr,varN,center,Math.min(nTerms,10));lastSteps=r.steps;
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Taylor Series (${nTerms} terms, center=${fmt(center)})</div><div class="result-answer">${esc(r.result)}</div></div></div>`;break;
+        }
+      }
+      rd.innerHTML=html;rc.style.display='block';stepsBtn.style.display=lastSteps?'block':'none';
+    }catch(e){rd.innerHTML=`<div class="result-box"><div class="result-value" style="color:var(--text-error)">${esc(e.message)}</div></div>`;rc.style.display='block';stepsBtn.style.display='none'}
+  });
+
+  stepsBtn.addEventListener('click',()=>{
+    if(!lastSteps)return;
+    const rd=document.getElementById('calc-calc-result');
+    rd.innerHTML+=`<div class="result-box" style="margin-top:8px"><div class="result-label">Steps</div>${lastSteps.map(s=>`<div class="result-step">${esc(s)}</div>`).join('')}</div>`;
+    stepsBtn.style.display='none';
+  });
+}
+
+// ============================================================
+// MATRIX UI
+// ============================================================
+function initMatrix(){
+  const opSel=document.getElementById('mat-op');
+  const inDiv=document.getElementById('mat-inputs');
+  const scGroup=document.getElementById('mat-scalar-group');
+  let matA=null,matB=null,rows=2,cols=2;
+
+  function renderMatInputs(){
+    rows=parseInt(document.getElementById('mat-rows').value)||2;
+    cols=parseInt(document.getElementById('mat-cols').value)||2;
+    rows=Math.min(Math.max(rows,1),6);cols=Math.min(Math.max(cols,1),6);
+
+    const needsB=['add','sub','mul'].includes(opSel.value);
+    scGroup.style.display=opSel.value==='scalar'?'block':'none';
+
+    let html=`<div class="matrix-label">Matrix A</div><div class="matrix-grid" style="grid-template-columns:repeat(${cols},1fr)">`;
+    for(let i=0;i<rows;i++)for(let j=0;j<cols;j++)html+=`<input type="number" step="any" id="ma-${i}-${j}" value="0" aria-label="A[${i+1},${j+1}]">`;
+    html+=`</div>`;
+
+    if(needsB){
+      const bRows=opSel.value==='mul'?cols:rows;
+      const bCols=opSel.value==='mul'?cols:cols;
+      html+=`<div class="matrix-label">Matrix B (${bRows}×${bCols})</div><div class="matrix-grid" style="grid-template-columns:repeat(${bCols},1fr)">`;
+      for(let i=0;i<bRows;i++)for(let j=0;j<bCols;j++)html+=`<input type="number" step="any" id="mb-${i}-${j}" value="0" aria-label="B[${i+1},${j+1}]">`;
+      html+=`</div>`;
+    }
+    inDiv.innerHTML=html;
+  }
+
+  function readMatrix(prefix,r,c){
+    const m=[];
+    for(let i=0;i<r;i++){m.push([]);for(let j=0;j<c;j++){const el=document.getElementById(`${prefix}-${i}-${j}`);m[i].push(el?parseFloat(el.value)||0:0)}}
+    return m;
+  }
+
+  opSel.addEventListener('change',renderMatInputs);
+  document.getElementById('mat-resize').addEventListener('click',renderMatInputs);
+  renderMatInputs();
+
+  document.getElementById('mat-calculate').addEventListener('click',()=>{
+    const rc=document.getElementById('mat-result-card'),rd=document.getElementById('mat-result');
+    try{
+      const A=readMatrix('ma',rows,cols);
+      const op=opSel.value;
+      let html='';
+      switch(op){
+        case'det':html=`<div class="result-box"><div class="result-label">Determinant</div><div class="result-answer">${fmt(matDet(A))}</div></div>`;break;
+        case'inv':{const inv=matInverse(A);html=`<div class="result-box"><div class="result-label">Inverse</div><div class="matrix-result">${esc(matToStr(inv))}</div></div>`;break}
+        case'trans':{const t=matTranspose(A);html=`<div class="result-box"><div class="result-label">Transpose</div><div class="matrix-result">${esc(matToStr(t))}</div></div>`;break}
+        case'trace':html=`<div class="result-box"><div class="result-label">Trace</div><div class="result-answer">${fmt(matTrace(A))}</div></div>`;break;
+        case'rank':html=`<div class="result-box"><div class="result-label">Rank</div><div class="result-answer">${matRank(A)}</div></div>`;break;
+        case'rref':{const r=matRREF(A);html=`<div class="result-box"><div class="result-label">Row Echelon Form</div><div class="matrix-result">${esc(matToStr(r))}</div></div>`;break}
+        case'eigen':{const r=matEigen2x2(A);html=`<div class="result-box"><div class="result-label">Eigenvalues</div><div class="result-answer">${r.eigenvalues.length?r.eigenvalues.map(v=>fmt(v)).join(', '):r.complex.map(c=>`${fmt(c.re)} ${c.im>=0?'+':'−'} ${fmt(Math.abs(c.im))}i`).join(', ')}</div>${r.steps.map(s=>`<div class="result-step">${esc(s)}</div>`).join('')}</div>`;break}
+        case'scalar':{const sc=parseFloat(document.getElementById('mat-scalar').value)||0;const r=matScalar(A,sc);html=`<div class="result-box"><div class="result-label">${fmt(sc)} × A</div><div class="matrix-result">${esc(matToStr(r))}</div></div>`;break}
+        case'add':case'sub':case'mul':{
+          const bRows=op==='mul'?cols:rows,bCols=op==='mul'?cols:cols;
+          const B=readMatrix('mb',bRows,bCols);
+          let r;
+          if(op==='add')r=matAdd(A,B);else if(op==='sub')r=matSub(A,B);else r=matMul(A,B);
+          html=`<div class="result-box"><div class="result-label">Result</div><div class="matrix-result">${esc(matToStr(r))}</div></div>`;break;
+        }
+      }
+      rd.innerHTML=html;rc.style.display='block';
+      addHist({type:'matrix',expression:`Matrix ${op}`,result:'Computed',timestamp:Date.now()});
+    }catch(e){rd.innerHTML=`<div class="result-box"><div class="result-value" style="color:var(--text-error)">${esc(e.message)}</div></div>`;rc.style.display='block'}
+  });
+}
+
+// ============================================================
+// STATISTICS UI
+// ============================================================
+function initStatistics(){
+  const mode=document.getElementById('stat-mode');
+  const inputs=document.getElementById('stat-inputs');
+  const popGroup=document.getElementById('stat-pop-group');
+
+  function updateInputs(){
+    document.getElementById('stat-result-card').style.display='none';
+    const m=mode.value;
+    popGroup.style.display=m==='descriptive'?'block':'none';
+    switch(m){
+      case'descriptive':inputs.innerHTML=`<div class="form-group"><label class="form-label">Data (comma separated)</label><textarea class="form-textarea" id="stat-data" placeholder="10, 12, 15, 18, 20, 22, 25"></textarea></div>`;break;
+      case'regression':inputs.innerHTML=`<div class="form-group"><label class="form-label">X values (comma separated)</label><textarea class="form-textarea" id="stat-x" placeholder="1, 2, 3, 4, 5"></textarea></div><div class="form-group"><label class="form-label">Y values (comma separated)</label><textarea class="form-textarea" id="stat-y" placeholder="2, 4, 5, 8, 10"></textarea></div>`;break;
+      case'probability':inputs.innerHTML=`<div class="form-group"><label class="form-label">Operation</label><select class="form-select" id="prob-op"><option value="perm">Permutation (nPr)</option><option value="comb">Combination (nCr)</option><option value="binom">Binomial P(X=k)</option></select></div><div class="form-group"><label class="form-label">n</label><input type="number" class="form-input" id="prob-n" min="0" style="width:80px"></div><div class="form-group"><label class="form-label">r / k</label><input type="number" class="form-input" id="prob-r" min="0" style="width:80px"></div><div class="form-group" id="prob-p-group" style="display:none"><label class="form-label">p (probability)</label><input type="number" class="form-input" id="prob-p" step="any" min="0" max="1" style="width:100px" value="0.5"></div>`;
+        setTimeout(()=>{
+          const po=document.getElementById('prob-op');if(po)po.addEventListener('change',()=>{document.getElementById('prob-p-group').style.display=po.value==='binom'?'block':'none'});
+        },0);
+        break;
+    }
+  }
+  mode.addEventListener('change',updateInputs);
+  updateInputs();
+
+  document.getElementById('stat-calculate').addEventListener('click',()=>{
+    const m=mode.value;const rc=document.getElementById('stat-result-card'),rd=document.getElementById('stat-result');
+    try{
+      let html='';
+      switch(m){
+        case'descriptive':{
+          const raw=document.getElementById('stat-data').value;
+          if(!raw.trim())throw Error('Enter data');
+          const data=raw.split(/[,\s]+/).filter(s=>s).map(Number);
+          if(data.some(isNaN))throw Error('Invalid number in data');
+          const isSample=document.getElementById('stat-pop').value==='sample';
+          const r=statDescriptive(data,isSample);
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">${esc(r.type)} Statistics (n = ${r.n})</div></div>`;
+          const stats=[['Sum',r.sum],['Mean',r.mean],['Median',r.median],['Mode',r.mode],['Min',r.min],['Max',r.max],['Range',r.range],['Variance',r.variance],['Std Dev',r.stddev],['Q1',r.q1],['Q3',r.q3],['IQR',r.iqr]];
+          for(const[label,val]of stats){html+=`<div class="result-section" style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border-color)"><span style="color:var(--text-secondary)">${label}</span><span style="font-family:var(--font-mono);color:var(--text-result)">${typeof val==='number'?fmt(val):val}</span></div>`}
+          html+=`</div>`;
+          addHist({type:'statistics',expression:`Descriptive (n=${r.n})`,result:`Mean=${fmt(r.mean)}, StdDev=${fmt(r.stddev)}`,timestamp:Date.now()});
+          break;
+        }
+        case'regression':{
+          const xr=document.getElementById('stat-x').value,yr=document.getElementById('stat-y').value;
+          if(!xr.trim()||!yr.trim())throw Error('Enter data');
+          const xData=xr.split(/[,\s]+/).filter(s=>s).map(Number);
+          const yData=yr.split(/[,\s]+/).filter(s=>s).map(Number);
+          if(xData.some(isNaN)||yData.some(isNaN))throw Error('Invalid number');
+          const r=linearRegression(xData,yData);
+          html=`<div class="result-box"><div class="result-section"><div class="result-label">Regression Equation</div><div class="result-answer">${esc(r.equation)}</div></div><div class="result-section"><div class="result-label">Slope</div><div class="result-value">${fmt(r.slope)}</div></div><div class="result-section"><div class="result-label">Y-Intercept</div><div class="result-value">${fmt(r.intercept)}</div></div><div class="result-section"><div class="result-label">Correlation (r)</div><div class="result-value">${fmt(r.r)}</div></div><div class="result-section"><div class="result-label">R²</div><div class="result-value">${fmt(r.r2)}</div></div></div>`;
+          addHist({type:'statistics',expression:'Linear Regression',result:r.equation,timestamp:Date.now()});
+          break;
+        }
+        case'probability':{
+          const pop=document.getElementById('prob-op').value;
+          const n=parseInt(document.getElementById('prob-n').value);
+          const r=parseInt(document.getElementById('prob-r').value);
+          if(isNaN(n)||isNaN(r))throw Error('Enter n and r');
+          if(pop==='perm'){
+            const res=permutation(n,r);
+            html=`<div class="result-box"><div class="result-label">P(${n}, ${r})</div><div class="result-answer">${fmt(res)}</div></div>`;
+          }else if(pop==='comb'){
+            const res=combination(n,r);
+            html=`<div class="result-box"><div class="result-label">C(${n}, ${r})</div><div class="result-answer">${fmt(res)}</div></div>`;
+          }else{
+            const p=parseFloat(document.getElementById('prob-p').value);
+            if(isNaN(p))throw Error('Enter probability p');
+            const res=binomialProb(n,r,p);
+            html=`<div class="result-box"><div class="result-label">P(X = ${r}) with n=${n}, p=${fmt(p)}</div><div class="result-answer">${fmt(res)}</div></div>`;
+          }
+          addHist({type:'statistics',expression:`${pop}(${n},${r})`,result:'Computed',timestamp:Date.now()});
+          break;
+        }
+      }
+      rd.innerHTML=html;rc.style.display='block';
+    }catch(e){rd.innerHTML=`<div class="result-box"><div class="result-value" style="color:var(--text-error)">${esc(e.message)}</div></div>`;rc.style.display='block'}
+  });
+}
+
+// ============================================================
+// PHYSICS UI
+// ============================================================
+function initPhysics(){
+  const ts=document.getElementById('phys-topic'),es=document.getElementById('phys-equation'),fs=document.getElementById('phys-find');
+  const topics=[...new Set(PHYS_EQ.map(e=>e.topic))];
+  ts.innerHTML=topics.map(t=>`<option value="${t}">${t}</option>`).join('');
+
+  function updEq(){const t=ts.value;const eqs=PHYS_EQ.filter(e=>e.topic===t);es.innerHTML=eqs.map(e=>`<option value="${e.id}">${e.formula}</option>`).join('');updFind()}
+  function updFind(){const eq=PHYS_EQ.find(e=>e.id===es.value);if(!eq)return;fs.innerHTML=Object.keys(eq.variables).map(v=>`<option value="${v}">${eq.variables[v].name} (${v})</option>`).join('');updInputs()}
+  function updInputs(){
+    const eq=PHYS_EQ.find(e=>e.id===es.value);if(!eq)return;
+    const fv=fs.value;const vars=Object.keys(eq.variables).filter(v=>v!==fv);
+    document.getElementById('phys-inputs').innerHTML=vars.map(v=>{const vi=eq.variables[v];const units=vi.units||[vi.siUnit];
+      return `<div class="form-group"><label class="form-label">${vi.name}</label><div class="input-row"><input type="number" class="form-input" id="pi-${v}" step="any" placeholder="Value"><select class="unit-select" id="pu-${v}">${units.map(u=>`<option value="${u}">${u||'—'}</option>`).join('')}</select></div></div>`
+    }).join('');
+  }
+  ts.addEventListener('change',updEq);es.addEventListener('change',updFind);fs.addEventListener('change',updInputs);
+  updEq();
+
+  document.getElementById('phys-calculate').addEventListener('click',()=>{
+    const eq=PHYS_EQ.find(e=>e.id===es.value);if(!eq)return;
+    const fv=fs.value;const knownVars=Object.keys(eq.variables).filter(v=>v!==fv);
+    const known={},given={},convs=[];
+    for(const v of knownVars){
+      const inp=document.getElementById('pi-'+v),usel=document.getElementById('pu-'+v);
+      if(!inp||inp.value===''){showPhysResult({error:true,message:`Missing: ${eq.variables[v].name}`});return}
+      const raw=parseFloat(inp.value);if(isNaN(raw)){showPhysResult({error:true,message:`Invalid: ${eq.variables[v].name}`});return}
+      const su=usel?usel.value:eq.variables[v].siUnit;given[v]={value:raw,unit:su};
+      let si=raw;const siU=eq.variables[v].siUnit;
+      if(su!==siU&&UDB[su]&&UDB[siU]&&UDB[su].d===UDB[siU].d){si=raw*UDB[su].f/UDB[siU].f;if(Math.abs(si-raw)>1e-12)convs.push(`${raw} ${su} = ${fmt(si)} ${siU}`)}
+      else if(su==='°C'&&siU==='K'){if(v==='dT')si=raw;else si=raw+273.15;if(Math.abs(si-raw)>1e-12)convs.push(`${raw} ${su} = ${fmt(si)} ${siU}`)}
+      known[v]=si;
+    }
+    try{
+      const r=eq.solve(known,fv);const vi=eq.variables[fv];
+      showPhysResult({error:false,quantity:vi.name,value:r.value,unit:vi.siUnit,formula:eq.formula,givenValues:given,conversions:convs,steps:r.steps,assumptions:eq.assumptions,variables:eq.variables});
+      const gs=Object.entries(given).map(([k,v])=>`${eq.variables[k]?eq.variables[k].name:k}=${v.value} ${v.unit}`).join(', ');
+      addHist({type:'physics',expression:`${eq.formula} → ${vi.name}`,result:`${vi.name} = ${fmt(r.value)} ${vi.siUnit}`,detail:gs,timestamp:Date.now()});
+    }catch(e){showPhysResult({error:true,message:e.message})}
+  });
+}
+
+function showPhysResult(d){
+  const card=document.getElementById('phys-result-card'),div=document.getElementById('phys-result');card.style.display='block';
+  if(d.error){div.innerHTML=`<div class="result-box"><div class="result-value" style="color:var(--text-error)">${esc(d.message)}</div></div>`;return}
+  let h='<div class="result-box">';
+  if(d.givenValues&&Object.keys(d.givenValues).length){h+='<div class="result-section"><div class="result-label">Given</div><div class="result-value">';for(const[k,v]of Object.entries(d.givenValues)){const i=d.variables?d.variables[k]:null;h+=`${i?i.name:k} = ${v.value} ${v.unit}<br>`}h+='</div></div>'}
+  h+=`<div class="result-section"><div class="result-label">Find</div><div class="result-value">${esc(d.quantity)}</div></div>`;
+  if(d.conversions&&d.conversions.length){h+='<div class="result-section"><div class="result-label">Conversions</div><div class="result-value">';d.conversions.forEach(c=>{h+=esc(c)+'<br>'});h+='</div></div>'}
+  if(d.steps&&d.steps.length){h+='<div class="result-section"><div class="result-label">Steps</div><div class="result-value">';d.steps.forEach(s=>{h+=`<strong>${esc(s.label)}:</strong> ${esc(s.text)}<br>`});h+='</div></div>'}
+  h+=`<div class="result-section"><div class="result-label">Answer</div><div class="result-answer">${esc(d.quantity)} = ${fmt(d.value)} ${esc(d.unit)}</div></div>`;
+  if(d.assumptions&&d.assumptions.length){h+='<div class="result-section"><div class="result-label">Assumptions</div>';d.assumptions.forEach(a=>{h+=`<div class="result-assumption">• ${esc(a)}</div>`});h+='</div>'}
+  h+='</div>';div.innerHTML=h;
+}
+
+// ============================================================
+// EQUATION LIBRARY
+// ============================================================
+function initEqLib(){
+  renderEqs('');
+  document.getElementById('eq-search').addEventListener('input',function(){renderEqs(this.value.toLowerCase())});
+}
+function renderEqs(f){
+  const list=document.getElementById('eq-list');const topics=[...new Set(PHYS_EQ.map(e=>e.topic))];
+  let html='';
+  for(const t of topics){
+    const eqs=PHYS_EQ.filter(e=>e.topic===t).filter(e=>{if(!f)return true;return(e.formula+' '+t+' '+Object.values(e.variables).map(v=>v.name).join(' ')).toLowerCase().includes(f)});
+    if(!eqs.length)continue;
+    html+=`<div class="eq-category">${esc(t)}</div>`;
+    for(const eq of eqs){const vd=Object.entries(eq.variables).map(([k,v])=>`${k} = ${v.name} (${v.siUnit})`).join(', ');
+      html+=`<div class="eq-item"><div class="eq-formula">${esc(eq.formula)}</div><div class="eq-vars">${esc(vd)}</div>${eq.assumptions.length?`<div class="eq-assumptions">Assumptions: ${eq.assumptions.map(a=>esc(a)).join('; ')}</div>`:''}</div>`}
+  }
+  list.innerHTML=html||'<div class="empty-state"><div class="empty-state-icon">🔍</div><p>No equations found</p></div>';
+}
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+function initConst(){
+  document.getElementById('const-list').innerHTML=PCONST.map(c=>`<div class="const-item"><div class="const-symbol">${esc(c.s)}</div><div class="const-name">${esc(c.n)}</div><div class="const-val">${fmt(c.v,'scientific')}</div><div class="const-unit">${esc(c.u||'dimensionless')} ${c.d?'(exact)':'(measured)'}</div></div>`).join('');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function initHistory(){
+  renderAllHistory();
+  document.getElementById('hist-clear-all').addEventListener('click',()=>showConfirm('Clear All History','Delete all history?',()=>{hist=[];saveH();renderAllHistory();renderCalcHist()}));
+  document.getElementById('hist-search').addEventListener('input',function(){renderAllHistory(this.value.toLowerCase())});
+}
+function renderAllHistory(f){
+  const list=document.getElementById('hist-list');let items=[...hist].reverse();
+  if(f)items=items.filter(h=>(h.expression+' '+h.result+' '+(h.detail||'')).toLowerCase().includes(f));
+  if(!items.length){list.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><p>No history</p></div>';return}
+  list.innerHTML=items.map((h,idx)=>{const ri=hist.length-1-idx;
+    return `<div class="hist-item"><div><div class="hist-type">${esc(h.type)}</div><div class="hist-expr">${esc(h.expression)}</div><div class="hist-result">${esc(h.result)}</div>${h.detail?`<div class="hist-expr" style="font-size:.76rem;margin-top:1px">${esc(h.detail)}</div>`:''}</div><button class="hist-del" data-idx="${ri}" title="Delete">×</button></div>`
+  }).join('');
+  list.querySelectorAll('.hist-del').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();hist.splice(parseInt(btn.dataset.idx),1);saveH();renderAllHistory(f);renderCalcHist()}));
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function initSettings(){
+  const th=document.getElementById('setting-theme'),an=document.getElementById('setting-angle'),pr=document.getElementById('setting-precision'),no=document.getElementById('setting-notation');
+  th.checked=S.theme==='light';an.value=S.angleMode;pr.value=S.precision;no.value=S.notation;applyTheme();
+  th.addEventListener('change',()=>{S.theme=th.checked?'light':'dark';saveS();applyTheme()});
+  an.addEventListener('change',()=>{S.angleMode=an.value;saveS();document.querySelectorAll('[data-angle]').forEach(b=>b.classList.toggle('active',b.dataset.angle===S.angleMode))});
+  pr.addEventListener('change',()=>{S.precision=pr.value;saveS()});
+  no.addEventListener('change',()=>{S.notation=no.value;saveS()});
+  document.getElementById('setting-clear-history').addEventListener('click',()=>showConfirm('Clear','Delete all history?',()=>{hist=[];saveH();renderAllHistory();renderCalcHist()}));
+  document.getElementById('setting-reset').addEventListener('click',()=>showConfirm('Reset','Restore defaults?',()=>{S={...DEFAULTS};saveS();th.checked=false;an.value='DEG';pr.value='auto';no.value='auto';applyTheme();document.querySelectorAll('[data-angle]').forEach(b=>b.classList.toggle('active',b.dataset.angle==='DEG'))}));
+}
+function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme)}
+
+// ============================================================
+// MODAL
+// ============================================================
+let confirmCB=null;
+function showConfirm(title,msg,cb){document.getElementById('modal-title').textContent=title;document.getElementById('modal-body').textContent=msg;document.getElementById('confirm-modal').classList.add('active');confirmCB=cb}
+document.getElementById('modal-cancel').addEventListener('click',()=>{document.getElementById('confirm-modal').classList.remove('active');confirmCB=null});
+document.getElementById('modal-confirm').addEventListener('click',()=>{document.getElementById('confirm-modal').classList.remove('active');if(confirmCB)confirmCB();confirmCB=null});
+document.getElementById('confirm-modal').addEventListener('click',ev=>{if(ev.target===document.getElementById('confirm-modal')){document.getElementById('confirm-modal').classList.remove('active');confirmCB=null}});
+
+// ============================================================
+// SELF-TESTS
+// ============================================================
+function runTests(){
+  let pass=0,fail=0;const savedAngle=S.angleMode;
+  function eq(a,b,tol){tol=tol||1e-9;if(Math.abs(a-b)>tol)throw Error(`Expected ${b}, got ${a}`)}
+  function test(name,fn){try{fn();pass++}catch(e){fail++;console.error(`FAIL: ${name} — ${e.message}`)}}
+
+  // Scientific
+  test('2+3=5',()=>eq(evaluate('2+3'),5));
+  test('2+3×4=14',()=>eq(evaluate('2+3×4'),14));
+  test('(2+3)×4=20',()=>eq(evaluate('(2+3)×4'),20));
+  test('√144=12',()=>eq(evaluate('√(144)'),12));
+  test('2^10=1024',()=>eq(evaluate('2^10'),1024));
+  test('5!=120',()=>eq(evaluate('5!'),120));
+  test('log(100)=2',()=>eq(evaluate('log(100)'),2));
+  test('ln(e)=1',()=>eq(evaluate('ln(e)'),1,1e-12));
+  S.angleMode='DEG';
+  test('sin(90)DEG=1',()=>eq(evaluate('sin(90)'),1,1e-10));
+  test('sin(30)DEG=0.5',()=>eq(evaluate('sin(30)'),0.5,1e-10));
+  test('cos(60)DEG=0.5',()=>eq(evaluate('cos(60)'),0.5,1e-10));
+  S.angleMode='RAD';
+  test('sin(π/2)RAD=1',()=>eq(evaluate('sin(π÷2)'),1,1e-10));
+  S.angleMode='GRAD';
+  test('sin(100)GRAD=1',()=>eq(evaluate('sin(100)'),1,1e-10));
+  S.angleMode=savedAngle;
+  test('-5+3=-2',()=>eq(evaluate('-5+3'),-2));
+  test('abs(-5)=5',()=>eq(evaluate('abs(-5)'),5));
+  test('cbrt(27)=3',()=>eq(evaluate('cbrt(27)'),3));
+  test('div by zero',()=>{try{evaluate('1÷0');throw Error('no')}catch(e){if(!e.message.includes('zero'))throw e}});
+  test('sqrt(-1) err',()=>{try{evaluate('√(-1)');throw Error('no')}catch(e){if(!e.message.includes('negative'))throw e}});
+
+  // Unit conversion
+  test('72km/h=20m/s',()=>eq(toSI(72,'km/h'),20,0.01));
+  test('1km=1000m',()=>eq(toSI(1,'km'),1000));
+
+  // Physics
+  const k1=PHYS_EQ.find(e=>e.id==='k1');
+  test('v=u+at=20',()=>eq(k1.solve({u:10,a:2,t:5},'v').value,20));
+  const fm=PHYS_EQ.find(e=>e.id==='m1');
+  test('F=ma=15',()=>eq(fm.solve({m:5,a:3},'F').value,15));
+  const ke=PHYS_EQ.find(e=>e.id==='we2');
+  test('KE=½mv²=1000',()=>eq(ke.solve({m:5,v:20},'KE').value,1000));
+
+  // Algebra
+  test('linear 2x+5=17',()=>eq(solveLinear(2,5,17).result,6));
+  test('quadratic x²-5x+6',()=>{const r=solveQuadratic(1,-5,6);eq(r.roots[0],3);eq(r.roots[1],2)});
+  test('system2',()=>{const r=solveSystem2(1,1,5,1,-1,1);eq(r.x,3);eq(r.y,2)});
+
+  // Polynomial
+  test('poly parse',()=>{const p=parsePoly('3x^2+5x-7','x');eq(p[0],-7);eq(p[1],5);eq(p[2],3)});
+  test('poly derivative',()=>{const d=polyDerivative([7,-2,5,1]);eq(d[0],-2);eq(d[1],10);eq(d[2],3)}); // d/dx(7-2x+5x²+x³)=-2+10x+3x²
+
+  // Calculus
+  test('diff x^3+5x^2-2x+7',()=>{const r=symbolicDiff('x^3+5x^2-2x+7','x');if(!r.result.includes('3'))throw Error('wrong')});
+  test('integral 3x^2+4x+1',()=>{const r=symbolicIntegral('3x^2+4x+1','x');if(!r.result.includes('C'))throw Error('wrong')});
+  test('definite ∫₀² 3x²+4x+1',()=>{const r=definiteIntegral('3x^2+4x+1','x',0,2);eq(r.result,8+8+2,0.01)});
+  test('limit sin(x)/x→0',()=>{const r=computeLimit('sin(x)÷x','x',0);eq(r.result,1,0.001)});
+
+  // Matrix
+  test('det 2x2',()=>eq(matDet([[1,2],[3,4]]),-2));
+  test('det 3x3',()=>eq(matDet([[1,2,3],[4,5,6],[7,8,0]]),-3*6,1e-6));
+  test('inverse 2x2',()=>{const inv=matInverse([[1,2],[3,4]]);eq(inv[0][0],-2,1e-10);eq(inv[0][1],1,1e-10)});
+  test('multiply',()=>{const r=matMul([[1,2],[3,4]],[[5,6],[7,8]]);eq(r[0][0],19);eq(r[1][1],50)});
+  test('singular',()=>{try{matInverse([[1,2],[2,4]]);throw Error('no')}catch(e){if(!e.message.includes('singular'))throw e}});
+
+  // Statistics
+  test('mean',()=>{const r=statDescriptive([10,20,30],false);eq(r.mean,20)});
+  test('median',()=>{const r=statDescriptive([1,3,5,7],false);eq(r.median,4)});
+  test('stddev pop',()=>{const r=statDescriptive([2,4,4,4,5,5,7,9],false);eq(r.stddev,2,0.01)});
+  test('permutation',()=>eq(permutation(5,3),60));
+  test('combination',()=>eq(combination(5,3),10));
+  test('regression',()=>{const r=linearRegression([1,2,3,4,5],[2,4,5,4,5]);if(typeof r.slope!=='number')throw Error('no slope')});
+
+  console.log(`%cPHYSX Tests: ${pass}/${pass+fail} passed`,pass+fail===pass?'color:green;font-weight:bold':'color:red;font-weight:bold');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init(){
+  loadState();initNav();initScientific();initAlgebra();initCalculus();initMatrix();initStatistics();
+  initPhysics();initEqLib();initConst();initHistory();initSettings();renderCalcHist();runTests();
+}
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+
+// PWA service worker
+if('serviceWorker'in navigator){window.addEventListener('load',()=>{const sw=`const C='physx-v2';self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(resp=>{const cl=resp.clone();caches.open(C).then(c=>c.put(e.request,cl));return resp}).catch(()=>new Response('Offline',{status:503})))));`;try{navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'})))}catch(e){}})}
+
+})();
+</script>
+</body>
+</html>
